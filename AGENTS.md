@@ -40,10 +40,14 @@ Every checkpoint owns a folder under `src/features/`, named
 
 ## Rules for every agent
 
-- Work through the checkpoints in order, starting from the one `STATE.md` names
-  as next. Never skip ahead or reorder them.
-- Stop and hand back to the user after C1, after C3, before C11, and any time
-  the same gate item fails twice.
+- Work the checkpoints in order, starting from the one `STATE.md` names as next.
+  Never skip ahead or reorder them.
+- **Build exactly one checkpoint per session, then stop and hand back**, unless
+  the prompt explicitly tells you to continue into the next one. The user tests
+  at phone dimensions between checkpoints.
+- Stop immediately and hand back any time the same gate item fails twice, or you
+  would need to change the schema, add a dependency, or edit a file another
+  feature folder owns.
 - Read `.agent-lock` first. If it is held and under 45 minutes old, stop and say
   so. If it is over 90 minutes old, take over and note the takeover in
   `STATE.md`.
