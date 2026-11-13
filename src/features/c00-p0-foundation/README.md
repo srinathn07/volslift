@@ -15,7 +15,9 @@ outside this list, stop and say why instead of editing it.
 - `app/preview/`
 - This folder, which holds the app shell
 
-**Depends on:** next, react, typescript, tailwindcss, @supabase/supabase-js, vitest
+**Depends on:** Nothing. This is the first checkpoint.
+
+**Dependencies to install:** next, react, typescript, tailwindcss, @supabase/supabase-js, vitest. Nothing else, for the whole build.
 
 ## Build
 
