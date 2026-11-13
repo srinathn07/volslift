@@ -2,15 +2,26 @@
 
 ## What this is
 
-VolsLift. A free workout tracker for UTK students built around an
-equipment-level gym crowd meter. The twist: the app knows whether a specific
-piece of equipment is in use and suggests substitute exercises that preserve
-your training intent.
+VolsLift. A fast, free workout logger that adapts your session when the
+equipment you planned on is taken.
 
-The keystone idea: **logging is sensing.** Occupancy is a byproduct of people
-logging their own workouts, not of altruistic check-ins. When a user logs a set
-on Rack 2, the set is recorded and Rack 2 is marked occupied for their rest
-window. No cameras, no hardware, no separate reporting burden.
+**The positioning, which decides every scope question.** The product is a
+logger as fast as Strong or Hevy, plus the one thing none of them do: when your
+rack is occupied, it hands you a substitute that preserves your training intent.
+Reviewers describe the market leaders as "a recorder, not a prescriber" and "a
+logger, not a coach." Neither adapts when the gym does not cooperate. That gap
+is the whole product.
+
+**The swap engine needs no other users.** Its only input is one tap from the
+person standing in the gym saying a unit is taken. There is no crowd-data
+dependency and no cold start. Do not design anything that requires other users
+to be present.
+
+**Equipment status is a secondary signal, not the premise.** Logging a set also
+marks that unit occupied for the user's rest window, so occupancy accrues as a
+byproduct and the board gets better as more people log. That is a roadmap
+property, not a claim the product depends on. Never present live occupancy as
+the core value, and never let a screen break when occupancy data is absent.
 
 ## Stack
 

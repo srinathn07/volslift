@@ -1,8 +1,8 @@
 # AGENTS.md
 
-VolsLift. A free workout tracker for UTK students with an equipment-level gym
-crowd meter. Built at VolHacks by two agents working in alternation, Claude
-Code and Codex. The repo is the only shared memory between them. Assume you
+VolsLift. A fast, free workout logger that adapts your session when the
+equipment you planned on is taken. Built at VolHacks by two agents working in
+alternation, Claude Code and Codex. The repo is the only shared memory between them. Assume you
 have never seen this project before, because the agent before you is gone.
 
 ## Read these before doing anything
@@ -10,9 +10,11 @@ have never seen this project before, because the agent before you is gone.
 1. `STATE.md` — where the build is and what to do next. Authoritative.
 2. `BUILD_SPEC.md` — the gate, the build sequence, the handoff protocol.
 3. `src/features/<your checkpoint>/README.md` — the spec for the step you are on.
-4. `DESIGN.md` — styling rules. Non-negotiable.
-5. `SMOKE.md` — the manual test checklist you must run.
-6. `PROJECT.md` — stack, conventions, data model.
+4. `DESIGN.md` — styling rules. Non-negotiable. The app is dark.
+5. `UI_PATTERNS.md` — interaction benchmarks from the apps lifters actually
+   use. Read before building any screen.
+6. `SMOKE.md` — the manual test checklist you must run.
+7. `PROJECT.md` — stack, conventions, data model.
 
 ## Where code goes
 

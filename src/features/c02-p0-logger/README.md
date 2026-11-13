@@ -18,10 +18,13 @@ outside this list, stop and say why instead of editing it.
 
 ## Build
 
-- Start and finish a session.
+- Start and finish a session. The app opens directly into a running session at the current exercise, or to a single start action if none is running. Never to a feed or a dashboard.
 - Exercise picker with instant search and recents at the top.
-- Set entry using **steppers, not a keyboard**. Plus and minus 5 lb on weight with long-press for 25, plus and minus 1 on reps. Typing numbers on a phone between sets is what kills logger apps.
-- Repeat last set in two taps, as the default action once a first set exists.
+- **The Previous column.** Every set row shows what was done on that set last time this exercise was performed, as `weight x reps` in `ink-muted`, and the input is prefilled with those values. No history shows a dash, never a zero. Read `UI_PATTERNS.md`: this is the single most important feature in the app and it is not a polish item.
+- Set entry with **both** input modes on the same control. Steppers for one-handed adjustment, plus and minus 5 lb on weight with long-press for 25, plus and minus 1 on reps. Tapping the number itself opens a numeric keypad for a precise value. Steppers alone are wrong and a keypad alone is wrong.
+- A plate calculator: given a target weight and the bar, show the plates to load per side. Standard expectation in this category.
+- Repeat last set in one tap, as the default action once a first set exists.
+- Hit the speed budget in `UI_PATTERNS.md`: three taps from opening the app to a logged set.
 - Rest timer auto-starting on set save, with a default per exercise, surviving a backgrounded tab.
 - Equipment unit selector on any exercise bound to a unit, defaulting to the last unit used.
 - Current session set list, grouped by exercise.
