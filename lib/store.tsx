@@ -11,9 +11,9 @@ import {
 } from "react";
 import type { User } from "@supabase/supabase-js";
 import { buildGymContext, substituteFor, type GymContext } from "./availability";
-import { exerciseById, gymById } from "./catalog";
+import { ROUTINES, exerciseById, gymById } from "./catalog";
 import { loadActiveWorkout, loadHistory, loadSets, saveWorkout, saveSets } from "./db";
-import { populateHistory } from "./history";
+import { allHistory, populateHistory } from "./history";
 import type { OccupancySnapshot } from "./occupancy";
 import { gymOccupancySnapshot } from "./occupancySim";
 import { supabase } from "./supabase";
@@ -127,7 +127,11 @@ export function VolFitProvider({ children }: { children: React.ReactNode }) {
   const refreshHistory = useCallback(async () => {
     const rows = await loadHistory();
     populateHistory(rows);
-    setHistory(rows);
+    // populateHistory merges the real rows over the seed; the merged cache is
+    // what the screens should render. Setting `rows` here showed an empty
+    // History while Home and Progress, which read allHistory() directly, were
+    // showing seeded numbers.
+    setHistory(allHistory());
   }, []);
 
   // Refresh occupancy every 5 minutes to pick up the next LCG window.
@@ -166,10 +170,16 @@ export function VolFitProvider({ children }: { children: React.ReactNode }) {
     const storedOnly = readLocal(ONLY_KEY);
     if (storedOnly !== null) setAvailableOnlyState(storedOnly === "true");
 
+    // Seeded routines are the fallback, not an empty list: a workout started
+    // without a routine has no rep range, so it records no target and the
+    // coach can never judge it. A first-run user with no routines would never
+    // see a suggestion.
     const stored = readLocal(ROUTINES_KEY);
+    let savedRoutines: Routine[] | null = null;
     if (stored) {
-      try { setRoutines(JSON.parse(stored) as Routine[]); } catch { /* corrupt data */ }
+      try { savedRoutines = JSON.parse(stored) as Routine[]; } catch { /* corrupt data */ }
     }
+    setRoutines(savedRoutines && savedRoutines.length > 0 ? savedRoutines : ROUTINES);
 
     void refreshHistory();
 
@@ -242,6 +252,7 @@ export function VolFitProvider({ children }: { children: React.ReactNode }) {
         weight:     Number(s.weight) || 0,
         reps:       Number(s.reps)   || 0,
         doneAt:     s.done ? Date.now() : undefined,
+        repTarget:  ex.targetReps,
       })),
     );
     void saveSets(rows);

@@ -327,4 +327,47 @@ export const GYMS: Gym[] = [
 export const gymById = (id: string): Gym => GYMS.find((g) => g.id === id) ?? GYMS[0];
 
 /** No preset routines — users build their own from available exercises. */
-export const ROUTINES: Routine[] = [];
+export const ROUTINES: Routine[] = [
+  {
+    id: "push_day",
+    name: "Push Day",
+    tint: "#FF5A3C",
+    lastPerformedAt: Date.parse("2026-11-09T16:00:00Z"),
+    exercises: [
+      { exerciseId: "bench_press", targetSets: 4, repLow: 6, repHigh: 8, targetWeight: 190 },
+      { exerciseId: "incline_db_press", targetSets: 3, repLow: 8, repHigh: 10, targetWeight: 65 },
+      { exerciseId: "overhead_press", targetSets: 3, repLow: 6, repHigh: 8, targetWeight: 115 },
+      { exerciseId: "lateral_raise", targetSets: 3, repLow: 12, repHigh: 15, targetWeight: 25 },
+      { exerciseId: "triceps_pushdown", targetSets: 3, repLow: 12, repHigh: 15, targetWeight: 60 },
+      { exerciseId: "cable_fly", targetSets: 3, repLow: 10, repHigh: 12, targetWeight: 35 },
+    ],
+  },
+  {
+    id: "pull_day",
+    name: "Pull Day",
+    tint: "#4A90FF",
+    lastPerformedAt: Date.parse("2026-11-07T16:00:00Z"),
+    exercises: [
+      { exerciseId: "barbell_row", targetSets: 4, repLow: 8, repHigh: 10, targetWeight: 155 },
+      { exerciseId: "pullup", targetSets: 4, repLow: 8, repHigh: 12 },
+      { exerciseId: "cable_row", targetSets: 3, repLow: 10, repHigh: 12, targetWeight: 120 },
+      { exerciseId: "ez_curl", targetSets: 3, repLow: 10, repHigh: 12, targetWeight: 65 },
+      { exerciseId: "hanging_leg_raise", targetSets: 3, repLow: 10, repHigh: 15 },
+    ],
+  },
+  {
+    id: "leg_day",
+    name: "Leg Day",
+    tint: "#35D28A",
+    lastPerformedAt: Date.parse("2026-11-05T16:00:00Z"),
+    exercises: [
+      { exerciseId: "back_squat", targetSets: 5, repLow: 4, repHigh: 6, targetWeight: 245 },
+      { exerciseId: "romanian_deadlift", targetSets: 3, repLow: 8, repHigh: 10, targetWeight: 205 },
+      { exerciseId: "leg_press", targetSets: 3, repLow: 10, repHigh: 12, targetWeight: 360 },
+      { exerciseId: "goblet_squat", targetSets: 3, repLow: 12, repHigh: 15, targetWeight: 70 },
+      { exerciseId: "farmers_carry", targetSets: 3, repLow: 1, repHigh: 1, targetWeight: 90 },
+      { exerciseId: "hanging_leg_raise", targetSets: 3, repLow: 10, repHigh: 15 },
+      { exerciseId: "cable_crunch", targetSets: 3, repLow: 12, repHigh: 15, targetWeight: 80 },
+    ],
+  },
+];

@@ -107,13 +107,15 @@ export default function HomePage() {
           </button>
         )}
 
-        {/* AI Coach — coming soon (disabled) */}
-        <div style={{
-          display: "flex", alignItems: "center", gap: 12,
-          background: t.surface, border: `1px solid ${t.border}`,
-          borderRadius: 16, padding: "14px 16px", opacity: 0.55,
-          pointerEvents: "none",
-        }}>
+        {/* Coach. Deterministic, so it is named for what it does, not for a model. */}
+        <Link
+          href="/coach"
+          style={{
+            display: "flex", alignItems: "center", gap: 12,
+            background: t.surface, border: `1px solid ${t.border}`,
+            borderRadius: 16, padding: "14px 16px",
+          }}
+        >
           <div style={{
             width: 36, height: 36, borderRadius: 10, background: t.accentSoft,
             display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
@@ -121,17 +123,13 @@ export default function HomePage() {
             <IconBolt />
           </div>
           <div style={{ display: "flex", flexDirection: "column", flex: 1, minWidth: 0, gap: 1 }}>
-            <span style={{ fontSize: 13.5, fontWeight: 600 }}>AI Coach</span>
-            <span style={{ fontSize: 12, color: t.textDim }}>Coming soon</span>
+            <span style={{ fontSize: 13.5, fontWeight: 600 }}>Coach</span>
+            <span style={{ fontSize: 12, color: t.textDim }}>
+              Progression and deload, with the numbers
+            </span>
           </div>
-          <span style={{
-            fontSize: 11, fontWeight: 600, color: t.textFaint,
-            background: t.surface2, border: `1px solid ${t.border}`,
-            borderRadius: 6, padding: "3px 7px",
-          }}>
-            Soon
-          </span>
-        </div>
+          <IconChevronRight size={16} color={t.textFaint} />
+        </Link>
 
         {/* Routines */}
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>

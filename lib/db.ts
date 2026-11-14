@@ -80,13 +80,14 @@ export async function loadHistory(): Promise<SessionSummary[]> {
     }
 
     for (const [exerciseId, exSets] of byExercise) {
+      const ordered = exSets.sort((a, b) => a.setIndex - b.setIndex);
       summaries.push({
         exerciseId,
         performedAt: workout.startedAt,
-        repTarget:   0,
-        sets: exSets
-          .sort((a, b) => a.setIndex - b.setIndex)
-          .map((s) => ({ weight: s.weight, reps: s.reps })),
+        // Carried from the routine when there was one. Zero means unknown, and
+        // suggestProgression refuses to progress on an unknown target.
+        repTarget: ordered.find((s) => typeof s.repTarget === "number")?.repTarget ?? 0,
+        sets: ordered.map((s) => ({ weight: s.weight, reps: s.reps, rpe: s.rpe })),
       });
     }
   }

@@ -20,53 +20,207 @@ function daysAgo(n: number): number {
 // 4 weeks of push/pull/legs, 3×/week.  repTarget left 0 — History and
 // Progress only need weight, reps, and dates.
 const SEED_HISTORY: SessionSummary[] = [
-  // ── week 4 (oldest) ─────────────────────────────────────────────────────
-  { exerciseId: "bench_press",        performedAt: daysAgo(27), repTarget: 0, sets: [{ weight: 115, reps: 8 }, { weight: 115, reps: 8 }, { weight: 115, reps: 7 }] },
-  { exerciseId: "overhead_press",     performedAt: daysAgo(27), repTarget: 0, sets: [{ weight: 75,  reps: 8 }, { weight: 75,  reps: 7 }, { weight: 75,  reps: 7 }] },
-  { exerciseId: "triceps_pushdown",   performedAt: daysAgo(27), repTarget: 0, sets: [{ weight: 50,  reps: 12 }, { weight: 50, reps: 11 }, { weight: 50, reps: 10 }] },
+  // Bench press, the progression case: all reps hit, effort submaximal.
+  {
+    exerciseId: "bench_press",
+    performedAt: daysAgo(2),
+    repTarget: 6,
+    sets: [
+      { weight: 190, reps: 6, rpe: 7 },
+      { weight: 190, reps: 6, rpe: 7 },
+      { weight: 190, reps: 6, rpe: 6.5 },
+      { weight: 175, reps: 8, rpe: 7 },
+    ],
+  },
+  {
+    exerciseId: "bench_press",
+    performedAt: daysAgo(6),
+    repTarget: 6,
+    sets: [
+      { weight: 190, reps: 6, rpe: 7 },
+      { weight: 190, reps: 6, rpe: 7 },
+      { weight: 190, reps: 6, rpe: 7 },
+    ],
+  },
+  {
+    exerciseId: "bench_press",
+    performedAt: daysAgo(10),
+    repTarget: 6,
+    sets: [
+      { weight: 185, reps: 7, rpe: 7 },
+      { weight: 185, reps: 6, rpe: 7.5 },
+      { weight: 185, reps: 6, rpe: 7.5 },
+    ],
+  },
+  {
+    exerciseId: "bench_press",
+    performedAt: daysAgo(17),
+    repTarget: 6,
+    sets: [
+      { weight: 180, reps: 6, rpe: 7.5 },
+      { weight: 180, reps: 6, rpe: 8 },
+    ],
+  },
+  {
+    exerciseId: "bench_press",
+    performedAt: daysAgo(24),
+    repTarget: 6,
+    sets: [
+      { weight: 175, reps: 6, rpe: 7.5 },
+      { weight: 175, reps: 5, rpe: 8 },
+    ],
+  },
+  {
+    exerciseId: "bench_press",
+    performedAt: daysAgo(31),
+    repTarget: 6,
+    sets: [
+      { weight: 170, reps: 6, rpe: 7 },
+      { weight: 170, reps: 6, rpe: 7.5 },
+    ],
+  },
 
-  { exerciseId: "pullup",             performedAt: daysAgo(25), repTarget: 0, sets: [{ weight: 0,   reps: 7 }, { weight: 0,  reps: 6 }, { weight: 0,  reps: 5 }] },
-  { exerciseId: "barbell_row",        performedAt: daysAgo(25), repTarget: 0, sets: [{ weight: 115, reps: 8 }, { weight: 115, reps: 8 }, { weight: 115, reps: 7 }] },
-  { exerciseId: "ez_curl",            performedAt: daysAgo(25), repTarget: 0, sets: [{ weight: 55,  reps: 10 }, { weight: 55, reps: 10 }, { weight: 55, reps: 9 }] },
+  // Back squat, the deload case: tonnage ramping, RPE rising, reps falling.
+  {
+    exerciseId: "back_squat",
+    performedAt: daysAgo(2),
+    repTarget: 5,
+    sets: [
+      { weight: 275, reps: 4, rpe: 8.6 },
+      { weight: 275, reps: 4, rpe: 9 },
+      { weight: 275, reps: 3, rpe: 9 },
+    ],
+  },
+  {
+    exerciseId: "back_squat",
+    performedAt: daysAgo(5),
+    repTarget: 5,
+    sets: [
+      { weight: 265, reps: 5, rpe: 8.5 },
+      { weight: 265, reps: 4, rpe: 8.8 },
+      { weight: 265, reps: 4, rpe: 9 },
+    ],
+  },
+  {
+    exerciseId: "back_squat",
+    performedAt: daysAgo(9),
+    repTarget: 5,
+    sets: [
+      { weight: 255, reps: 5, rpe: 8.4 },
+      { weight: 255, reps: 5, rpe: 8.6 },
+      { weight: 245, reps: 5, rpe: 8.2 },
+    ],
+  },
+  {
+    exerciseId: "back_squat",
+    performedAt: daysAgo(16),
+    repTarget: 6,
+    sets: [
+      { weight: 225, reps: 6, rpe: 7.2 },
+      { weight: 225, reps: 6, rpe: 7.4 },
+    ],
+  },
+  {
+    exerciseId: "back_squat",
+    performedAt: daysAgo(20),
+    repTarget: 6,
+    sets: [
+      { weight: 215, reps: 6, rpe: 7 },
+      { weight: 215, reps: 6, rpe: 7.2 },
+    ],
+  },
+  {
+    exerciseId: "back_squat",
+    performedAt: daysAgo(27),
+    repTarget: 6,
+    sets: [
+      { weight: 205, reps: 6, rpe: 7.1 },
+      { weight: 205, reps: 6, rpe: 7 },
+    ],
+  },
 
-  { exerciseId: "back_squat",         performedAt: daysAgo(23), repTarget: 0, sets: [{ weight: 135, reps: 6 }, { weight: 135, reps: 6 }, { weight: 135, reps: 5 }] },
-  { exerciseId: "romanian_deadlift",  performedAt: daysAgo(23), repTarget: 0, sets: [{ weight: 115, reps: 8 }, { weight: 115, reps: 8 }, { weight: 115, reps: 7 }] },
-  { exerciseId: "leg_press",          performedAt: daysAgo(23), repTarget: 0, sets: [{ weight: 180, reps: 10 }, { weight: 180, reps: 10 }, { weight: 180, reps: 9 }] },
-
-  // ── week 3 ───────────────────────────────────────────────────────────────
-  { exerciseId: "bench_press",        performedAt: daysAgo(20), repTarget: 0, sets: [{ weight: 120, reps: 8 }, { weight: 120, reps: 8 }, { weight: 120, reps: 7 }] },
-  { exerciseId: "overhead_press",     performedAt: daysAgo(20), repTarget: 0, sets: [{ weight: 75,  reps: 8 }, { weight: 75,  reps: 8 }, { weight: 75,  reps: 7 }] },
-  { exerciseId: "triceps_pushdown",   performedAt: daysAgo(20), repTarget: 0, sets: [{ weight: 55,  reps: 12 }, { weight: 55, reps: 11 }, { weight: 55, reps: 11 }] },
-
-  { exerciseId: "pullup",             performedAt: daysAgo(18), repTarget: 0, sets: [{ weight: 0,   reps: 7 }, { weight: 0,  reps: 7 }, { weight: 0,  reps: 6 }] },
-  { exerciseId: "barbell_row",        performedAt: daysAgo(18), repTarget: 0, sets: [{ weight: 120, reps: 8 }, { weight: 120, reps: 8 }, { weight: 120, reps: 7 }] },
-  { exerciseId: "ez_curl",            performedAt: daysAgo(18), repTarget: 0, sets: [{ weight: 55,  reps: 10 }, { weight: 55, reps: 10 }, { weight: 60, reps: 8 }] },
-
-  { exerciseId: "back_squat",         performedAt: daysAgo(16), repTarget: 0, sets: [{ weight: 140, reps: 6 }, { weight: 140, reps: 6 }, { weight: 140, reps: 5 }] },
-  { exerciseId: "romanian_deadlift",  performedAt: daysAgo(16), repTarget: 0, sets: [{ weight: 120, reps: 8 }, { weight: 120, reps: 8 }, { weight: 120, reps: 7 }] },
-  { exerciseId: "leg_press",          performedAt: daysAgo(16), repTarget: 0, sets: [{ weight: 185, reps: 10 }, { weight: 185, reps: 10 }, { weight: 185, reps: 10 }] },
-
-  // ── week 2 ───────────────────────────────────────────────────────────────
-  { exerciseId: "bench_press",        performedAt: daysAgo(13), repTarget: 0, sets: [{ weight: 120, reps: 8 }, { weight: 120, reps: 8 }, { weight: 125, reps: 6 }] },
-  { exerciseId: "overhead_press",     performedAt: daysAgo(13), repTarget: 0, sets: [{ weight: 80,  reps: 7 }, { weight: 80,  reps: 7 }, { weight: 80,  reps: 6 }] },
-  { exerciseId: "triceps_pushdown",   performedAt: daysAgo(13), repTarget: 0, sets: [{ weight: 55,  reps: 12 }, { weight: 55, reps: 12 }, { weight: 55, reps: 11 }] },
-
-  { exerciseId: "pullup",             performedAt: daysAgo(11), repTarget: 0, sets: [{ weight: 0,   reps: 8 }, { weight: 0,  reps: 7 }, { weight: 0,  reps: 6 }] },
-  { exerciseId: "barbell_row",        performedAt: daysAgo(11), repTarget: 0, sets: [{ weight: 120, reps: 8 }, { weight: 125, reps: 7 }, { weight: 125, reps: 7 }] },
-  { exerciseId: "ez_curl",            performedAt: daysAgo(11), repTarget: 0, sets: [{ weight: 60,  reps: 10 }, { weight: 60, reps: 10 }, { weight: 60, reps: 9 }] },
-
-  { exerciseId: "back_squat",         performedAt: daysAgo(9),  repTarget: 0, sets: [{ weight: 145, reps: 6 }, { weight: 145, reps: 5 }, { weight: 145, reps: 5 }] },
-  { exerciseId: "romanian_deadlift",  performedAt: daysAgo(9),  repTarget: 0, sets: [{ weight: 125, reps: 8 }, { weight: 125, reps: 8 }, { weight: 125, reps: 7 }] },
-  { exerciseId: "leg_press",          performedAt: daysAgo(9),  repTarget: 0, sets: [{ weight: 190, reps: 10 }, { weight: 190, reps: 10 }, { weight: 195, reps: 8 }] },
-
-  // ── week 1 (most recent seed week) ───────────────────────────────────────
-  { exerciseId: "bench_press",        performedAt: daysAgo(6),  repTarget: 0, sets: [{ weight: 125, reps: 8 }, { weight: 125, reps: 8 }, { weight: 125, reps: 7 }] },
-  { exerciseId: "overhead_press",     performedAt: daysAgo(6),  repTarget: 0, sets: [{ weight: 80,  reps: 8 }, { weight: 80,  reps: 7 }, { weight: 80,  reps: 7 }] },
-  { exerciseId: "triceps_pushdown",   performedAt: daysAgo(6),  repTarget: 0, sets: [{ weight: 60,  reps: 12 }, { weight: 60, reps: 11 }, { weight: 60, reps: 10 }] },
-
-  { exerciseId: "pullup",             performedAt: daysAgo(4),  repTarget: 0, sets: [{ weight: 0,   reps: 8 }, { weight: 0,  reps: 8 }, { weight: 0,  reps: 7 }] },
-  { exerciseId: "barbell_row",        performedAt: daysAgo(4),  repTarget: 0, sets: [{ weight: 125, reps: 8 }, { weight: 125, reps: 8 }, { weight: 130, reps: 6 }] },
-  { exerciseId: "ez_curl",            performedAt: daysAgo(4),  repTarget: 0, sets: [{ weight: 60,  reps: 10 }, { weight: 60, reps: 10 }, { weight: 65, reps: 8 }] },
+  // Supporting lifts, enough to draw charts with.
+  {
+    exerciseId: "overhead_press",
+    performedAt: daysAgo(2),
+    repTarget: 6,
+    sets: [
+      { weight: 115, reps: 6, rpe: 8 },
+      { weight: 115, reps: 5, rpe: 8.5 },
+    ],
+  },
+  {
+    exerciseId: "overhead_press",
+    performedAt: daysAgo(9),
+    repTarget: 6,
+    sets: [
+      { weight: 110, reps: 6, rpe: 7.5 },
+      { weight: 110, reps: 6, rpe: 8 },
+    ],
+  },
+  {
+    exerciseId: "overhead_press",
+    performedAt: daysAgo(23),
+    repTarget: 6,
+    sets: [{ weight: 105, reps: 6, rpe: 7.5 }],
+  },
+  {
+    exerciseId: "pullup",
+    performedAt: daysAgo(4),
+    repTarget: 10,
+    sets: [
+      { weight: 0, reps: 11, rpe: 8 },
+      { weight: 0, reps: 10, rpe: 8.5 },
+      { weight: 0, reps: 8, rpe: 9 },
+    ],
+  },
+  {
+    exerciseId: "pullup",
+    performedAt: daysAgo(11),
+    repTarget: 10,
+    sets: [
+      { weight: 0, reps: 9, rpe: 8.5 },
+      { weight: 0, reps: 8, rpe: 9 },
+    ],
+  },
+  {
+    exerciseId: "romanian_deadlift",
+    performedAt: daysAgo(5),
+    repTarget: 8,
+    sets: [
+      { weight: 205, reps: 8, rpe: 7.5 },
+      { weight: 205, reps: 8, rpe: 8 },
+    ],
+  },
+  {
+    exerciseId: "romanian_deadlift",
+    performedAt: daysAgo(12),
+    repTarget: 8,
+    sets: [
+      { weight: 195, reps: 8, rpe: 7.5 },
+      { weight: 195, reps: 8, rpe: 7.5 },
+    ],
+  },
+  // Earlier leg work, so the deload comparison has a fair previous window
+  // rather than comparing three squat days against one.
+  {
+    exerciseId: "romanian_deadlift",
+    performedAt: daysAgo(18),
+    repTarget: 8,
+    sets: [
+      { weight: 185, reps: 8, rpe: 7.5 },
+      { weight: 185, reps: 8, rpe: 7.5 },
+    ],
+  },
+  {
+    exerciseId: "goblet_squat",
+    performedAt: daysAgo(25),
+    repTarget: 15,
+    sets: [
+      { weight: 65, reps: 15, rpe: 7 },
+      { weight: 65, reps: 15, rpe: 7 },
+    ],
+  },
 ];
 
 let _cache: SessionSummary[] = [];
