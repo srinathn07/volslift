@@ -9,12 +9,15 @@ import {
   useRef,
   useState,
 } from "react";
+import type { User } from "@supabase/supabase-js";
 import { buildGymContext, substituteFor, type GymContext } from "./availability";
-import { exerciseById, gymById } from "./catalog";
-import { loadActiveWorkout, loadSets, saveWorkout, saveSets } from "./db";
-import { SEED_HISTORY } from "./history";
+import { ROUTINES, exerciseById, gymById } from "./catalog";
+import { loadActiveWorkout, loadHistory, loadSets, saveWorkout, saveSets } from "./db";
+import { allHistory, populateHistory } from "./history";
 import type { OccupancySnapshot } from "./occupancy";
 import { gymOccupancySnapshot } from "./occupancySim";
+import { supabase } from "./supabase";
+import { pullRemote, pushPending } from "./sync";
 import type { Routine, RoutineExercise, SessionSummary, SetEntry } from "./types";
 
 export interface ActiveSet {
@@ -93,6 +96,12 @@ interface StoreValue {
   previousFor: (exerciseId: string, setIndex: number) => string;
   tonnage: number;
   occupancy: Map<string, OccupancySnapshot>;
+
+  authUser: User | null;
+  syncStatus: "idle" | "syncing" | "error";
+  signIn: (email: string, password: string) => Promise<string | null>;
+  signUp: (email: string, password: string) => Promise<string | null>;
+  signOut: () => Promise<void>;
 }
 
 const StoreContext = createContext<StoreValue | null>(null);
@@ -111,17 +120,18 @@ export function VolFitProvider({ children }: { children: React.ReactNode }) {
   const [occupancy, setOccupancy] = useState<Map<string, OccupancySnapshot>>(
     () => gymOccupancySnapshot(FIXED_GYM_ID, gym?.equipment ?? []),
   );
+  const [authUser,    setAuthUser]    = useState<User | null>(null);
+  const [syncStatus,  setSyncStatus]  = useState<"idle" | "syncing" | "error">("idle");
   const restored = useRef(false);
 
-  /**
-   * History comes from the seed until sync exists. The seed cases are
-   * hand-built so the progression and deload rules have something true to
-   * fire on; deriving history from logged sets instead would need a rep
-   * target per session, which SetEntry does not carry, and a guessed target
-   * would make progression fire on every session. Revisit with sync.
-   */
   const refreshHistory = useCallback(async () => {
-    setHistory(SEED_HISTORY);
+    const rows = await loadHistory();
+    populateHistory(rows);
+    // populateHistory merges the real rows over the seed; the merged cache is
+    // what the screens should render. Setting `rows` here showed an empty
+    // History while Home and Progress, which read allHistory() directly, were
+    // showing seeded numbers.
+    setHistory(allHistory());
   }, []);
 
   // Refresh occupancy every 5 minutes to pick up the next LCG window.
@@ -132,6 +142,27 @@ export function VolFitProvider({ children }: { children: React.ReactNode }) {
     return () => window.clearInterval(id);
   }, [gym]);
 
+  // Keep authUser in sync with the Supabase session, and pull remote history
+  // whenever the user signs in so a new device is populated immediately.
+  useEffect(() => {
+    void supabase.auth.getSession().then(({ data }) => {
+      setAuthUser(data.session?.user ?? null);
+    });
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        setAuthUser(session?.user ?? null);
+        if (event === "SIGNED_IN" && session?.user) {
+          setSyncStatus("syncing");
+          pullRemote(session.user)
+            .then(() => refreshHistory())
+            .catch((err) => console.error("[volfit] pullRemote failed:", err))
+            .finally(() => setSyncStatus("idle"));
+        }
+      },
+    );
+    return () => subscription.unsubscribe();
+  }, [refreshHistory]);
+
   useEffect(() => {
     if (restored.current) return;
     restored.current = true;
@@ -139,10 +170,16 @@ export function VolFitProvider({ children }: { children: React.ReactNode }) {
     const storedOnly = readLocal(ONLY_KEY);
     if (storedOnly !== null) setAvailableOnlyState(storedOnly === "true");
 
+    // Seeded routines are the fallback, not an empty list: a workout started
+    // without a routine has no rep range, so it records no target and the
+    // coach can never judge it. A first-run user with no routines would never
+    // see a suggestion.
     const stored = readLocal(ROUTINES_KEY);
+    let savedRoutines: Routine[] | null = null;
     if (stored) {
-      try { setRoutines(JSON.parse(stored) as Routine[]); } catch { /* corrupt data */ }
+      try { savedRoutines = JSON.parse(stored) as Routine[]; } catch { /* corrupt data */ }
     }
+    setRoutines(savedRoutines && savedRoutines.length > 0 ? savedRoutines : ROUTINES);
 
     void refreshHistory();
 
@@ -215,6 +252,7 @@ export function VolFitProvider({ children }: { children: React.ReactNode }) {
         weight:     Number(s.weight) || 0,
         reps:       Number(s.reps)   || 0,
         doneAt:     s.done ? Date.now() : undefined,
+        repTarget:  ex.targetReps,
       })),
     );
     void saveSets(rows);
@@ -382,7 +420,17 @@ export function VolFitProvider({ children }: { children: React.ReactNode }) {
     });
     setRest({ open: false, duration: DEFAULT_REST, startedAt: null });
     void refreshHistory();
-  }, [refreshHistory]);
+    // Push to Supabase if signed in — non-blocking, non-fatal.
+    if (authUser) {
+      setSyncStatus("syncing");
+      // Slight delay to let saveWorkout/saveSets flush to IndexedDB first.
+      setTimeout(() => {
+        pushPending(authUser)
+          .then(() => setSyncStatus("idle"))
+          .catch(() => setSyncStatus("error"));
+      }, 400);
+    }
+  }, [refreshHistory, authUser]);
 
   const setRestDuration = useCallback((seconds: number) => {
     setRest((prev) => ({ ...prev, duration: seconds, startedAt: Date.now() }));
@@ -418,6 +466,20 @@ export function VolFitProvider({ children }: { children: React.ReactNode }) {
     );
   }, [session]);
 
+  const signIn = useCallback(async (email: string, password: string): Promise<string | null> => {
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    return error?.message ?? null;
+  }, []);
+
+  const signUp = useCallback(async (email: string, password: string): Promise<string | null> => {
+    const { error } = await supabase.auth.signUp({ email, password });
+    return error?.message ?? null;
+  }, []);
+
+  const signOut = useCallback(async () => {
+    await supabase.auth.signOut();
+  }, []);
+
   // Expose substituteFor bound to current gymCtx so pages don't import availability directly.
   const boundSubstituteFor = useCallback(
     (exercise: Parameters<typeof substituteFor>[0]) => substituteFor(exercise, gymCtx),
@@ -435,6 +497,7 @@ export function VolFitProvider({ children }: { children: React.ReactNode }) {
     rest, setRestDuration, closeRest,
     previousFor, tonnage,
     occupancy,
+    authUser, syncStatus, signIn, signUp, signOut,
     // @ts-expect-error extra field used by workout page
     substituteFor: boundSubstituteFor,
   };

@@ -171,3 +171,26 @@ describe("explain", () => {
     expect(line).toContain("190 lb");
   });
 });
+
+describe("suggestProgression with an unknown rep target", () => {
+  // Sessions reconstructed from logged sets carry repTarget 0, because a set
+  // row does not record the range it was prescribed against. Zero must mean
+  // "target unknown", not "target met": `reps >= 0` is true for every set, so
+  // treating it as a real target would fire a progression card on any two
+  // logged sessions regardless of how they actually went.
+  it("does not progress when the rep target is unknown", () => {
+    const history = [
+      session(3, [{ weight: 185, reps: 4 }, { weight: 185, reps: 3 }], 0),
+      session(10, [{ weight: 185, reps: 4 }, { weight: 185, reps: 3 }], 0),
+    ];
+    expect(suggestProgression("Chest", history)).toBeNull();
+  });
+
+  it("still progresses when the target is known and met", () => {
+    const history = [
+      session(3, [{ weight: 185, reps: 8, rpe: 7 }, { weight: 185, reps: 8, rpe: 7 }], 8),
+      session(10, [{ weight: 185, reps: 8, rpe: 6 }, { weight: 185, reps: 8, rpe: 6 }], 8),
+    ];
+    expect(suggestProgression("Chest", history)).not.toBeNull();
+  });
+});

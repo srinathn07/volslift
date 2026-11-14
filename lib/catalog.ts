@@ -326,6 +326,7 @@ export const GYMS: Gym[] = [
 
 export const gymById = (id: string): Gym => GYMS.find((g) => g.id === id) ?? GYMS[0];
 
+/** No preset routines — users build their own from available exercises. */
 export const ROUTINES: Routine[] = [
   {
     id: "push_day",

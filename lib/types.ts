@@ -66,6 +66,13 @@ export interface SetEntry {
   reps: number;
   rpe?: number;
   doneAt?: number;
+  /**
+   * Top of the rep range this set was prescribed against, when the workout
+   * came from a routine. Stored per set so a session rebuilt from IndexedDB
+   * can be judged against the target it was actually given; absent means the
+   * target is unknown and the progression rule must not fire.
+   */
+  repTarget?: number;
 }
 
 export interface Workout {

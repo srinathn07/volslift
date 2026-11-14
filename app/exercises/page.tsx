@@ -1,8 +1,7 @@
 "use client";
 
-import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useMemo, useState } from "react";
 import { Header, Screen } from "@/components/Shell";
 import {
   IconCheck,
@@ -23,7 +22,13 @@ import type { Muscle } from "@/lib/types";
 const GROUPS: Array<Muscle | "All"> = ["All", "Chest", "Back", "Legs", "Shoulders", "Arms", "Core"];
 
 export default function ExercisesPage() {
+  return <Suspense><ExercisesContent /></Suspense>;
+}
+
+function ExercisesContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const forRoutine = searchParams.get("for") === "routine";
   const { gym, gymCtx, availableOnly, setAvailableOnly, addExercise, session } = useStore();
   const [muscle, setMuscle] = useState<Muscle | "All">("All");
   const [search, setSearch] = useState("");
@@ -37,6 +42,10 @@ export default function ExercisesPage() {
   const onAdd = (row: LibraryRow) => {
     const target = row.available ? row.exercise : row.substitute;
     if (!target) return;
+    if (forRoutine) {
+      router.push(`/routines/new?add=${target.id}`);
+      return;
+    }
     addExercise(target.id);
     setDetail(null);
     router.push("/workout");
@@ -45,7 +54,7 @@ export default function ExercisesPage() {
   return (
     <Screen>
       <Header
-        back={session ? "/workout" : "/"}
+        back={forRoutine ? "/routines/new" : session ? "/workout" : "/"}
         title="Exercises"
         subtitle={`${gymCtx.totalCount} in library`}
         right={
@@ -133,12 +142,6 @@ export default function ExercisesPage() {
           >
             {gymCtx.availableCount} of {gymCtx.totalCount} here
           </span>
-          <Link
-            href="/gym"
-            style={{ fontSize: 11.5, fontWeight: 600, color: t.accentText, flexShrink: 0 }}
-          >
-            Change
-          </Link>
         </div>
 
         {/* Availability toggle and muscle chips */}
@@ -158,9 +161,9 @@ export default function ExercisesPage() {
               height: 34,
               padding: "0 13px",
               borderRadius: 17,
-              border: `1px solid ${availableOnly ? t.success : "#2E343A"}`,
+              border: `1px solid ${availableOnly ? t.success : t.border}`,
               background: availableOnly ? t.successSoft : t.surface2,
-              color: availableOnly ? "#6FE0AC" : t.textSoft,
+              color: availableOnly ? t.success : t.textSoft,
               fontSize: 13,
               fontWeight: 600,
             }}
@@ -172,7 +175,7 @@ export default function ExercisesPage() {
             style={{
               width: 1,
               height: 22,
-              background: "#2A2F35",
+              background: t.border,
               flexShrink: 0,
               alignSelf: "center",
             }}
@@ -190,7 +193,7 @@ export default function ExercisesPage() {
                   height: 34,
                   padding: "0 14px",
                   borderRadius: 17,
-                  border: `1px solid ${selected ? t.accent : "#2E343A"}`,
+                  border: `1px solid ${selected ? t.accent : t.border}`,
                   background: selected ? t.accentSoft : t.surface2,
                   color: selected ? t.accentText : t.textSoft,
                   fontSize: 13,
@@ -224,7 +227,7 @@ export default function ExercisesPage() {
 
         {rows.map((row) => {
           const { exercise, available } = row;
-          const tint = available ? muscleTint[exercise.muscle] ?? t.accent : "#5B6168";
+          const tint = available ? muscleTint[exercise.muscle] ?? t.accent : t.textFaint;
           const best = bestE1rm(historyFor(exercise.id)[0]?.sets ?? []);
           return (
             <button
@@ -252,15 +255,15 @@ export default function ExercisesPage() {
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  background: available ? t.surface2 : "#16191D",
-                  border: `1px solid ${available ? "#2A2F35" : "#23282D"}`,
+                  background: t.surface2,
+                  border: `1px solid ${t.border}`,
                 }}
               >
                 <IconDumbbell size={18} color={tint} />
               </div>
               <div style={{ display: "flex", flexDirection: "column", flex: 1, minWidth: 0, gap: 3 }}>
                 <span
-                  style={{ fontSize: 14.5, fontWeight: 600, color: available ? t.text : "#9AA1A8" }}
+                  style={{ fontSize: 14.5, fontWeight: 600, color: available ? t.text : t.textDim }}
                 >
                   {exercise.name}
                 </span>
@@ -272,7 +275,7 @@ export default function ExercisesPage() {
                       borderRadius: 5,
                       padding: "2px 6px",
                       color: available ? t.textSoft : t.textDim,
-                      background: available ? "#242A30" : "#1D2126",
+                      background: t.surface2,
                     }}
                   >
                     {exercise.muscle}
@@ -314,7 +317,7 @@ export default function ExercisesPage() {
       </div>
 
       {detail ? (
-        <DetailSheet row={detail} onClose={() => setDetail(null)} onAdd={() => onAdd(detail)} gymName={gym.name} />
+        <DetailSheet row={detail} onClose={() => setDetail(null)} onAdd={() => onAdd(detail)} gymName={gym.name} forRoutine={forRoutine} />
       ) : null}
     </Screen>
   );
@@ -325,11 +328,13 @@ function DetailSheet({
   gymName,
   onClose,
   onAdd,
+  forRoutine,
 }: {
   row: LibraryRow;
   gymName: string;
   onClose: () => void;
   onAdd: () => void;
+  forRoutine: boolean;
 }) {
   const { exercise, available, substitute } = row;
   const history = historyFor(exercise.id);
@@ -361,7 +366,7 @@ function DetailSheet({
       style={{
         position: "fixed",
         inset: 0,
-        background: "rgba(5,6,8,0.72)",
+        background: "rgba(0,0,0,0.50)",
         display: "flex",
         flexDirection: "column",
         justifyContent: "flex-end",
@@ -375,7 +380,7 @@ function DetailSheet({
           margin: "0 auto",
           boxSizing: "border-box",
           background: t.surface,
-          borderTop: "1px solid #2A2F35",
+          borderTop: `1px solid ${t.border}`,
           borderRadius: "24px 24px 0 0",
           padding: "14px 20px calc(24px + env(safe-area-inset-bottom)) 20px",
           display: "flex",
@@ -409,7 +414,7 @@ function DetailSheet({
               height: 34,
               borderRadius: 10,
               background: t.surface2,
-              border: "1px solid #2A2F35",
+              border: `1px solid ${t.border}`,
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
@@ -427,14 +432,14 @@ function DetailSheet({
               display: "flex",
               alignItems: "flex-start",
               gap: 11,
-              background: "rgba(255,178,74,0.08)",
-              border: "1px solid #3D3220",
+              background: t.warningSoft,
+              border: `1px solid ${t.warning}`,
               borderRadius: 13,
               padding: 12,
             }}
           >
             <IconSwap size={17} color={t.warning} style={{ marginTop: 1 }} />
-            <span style={{ flex: 1, minWidth: 0, fontSize: 12.5, lineHeight: 1.45, color: "#E4C79A" }}>
+            <span style={{ flex: 1, minWidth: 0, fontSize: 12.5, lineHeight: 1.45, color: t.textSoft }}>
               {gymName} has no {equipmentName(exercise.equipment).toLowerCase()}.
               {substitute
                 ? ` Closest match in your equipment list: ${substitute.name}.`
@@ -447,7 +452,7 @@ function DetailSheet({
           <div
             style={{
               background: t.surface2,
-              border: "1px solid #2A2F35",
+              border: `1px solid ${t.border}`,
               borderRadius: 14,
               padding: 14,
             }}
@@ -484,13 +489,13 @@ function DetailSheet({
               role="img"
               aria-label={`${exercise.name} estimated max over the last ${points.length} sessions`}
             >
-              <line x1="0" y1="78" x2="300" y2="78" stroke="#2E343A" strokeWidth={1} />
+              <line x1="0" y1="78" x2="300" y2="78" stroke={t.border} strokeWidth={1} />
               <line
                 x1="0"
                 y1="42"
                 x2="300"
                 y2="42"
-                stroke="#242A30"
+                stroke={t.borderSoft}
                 strokeWidth={1}
                 strokeDasharray="3 5"
               />
@@ -554,11 +559,17 @@ function DetailSheet({
               padding: "0 10px",
             }}
           >
-            {available
-              ? "Add to Workout"
-              : substitute
-                ? `Add ${substitute.name} instead`
-                : "No swap available"}
+            {forRoutine
+              ? available
+                ? "Add to Routine"
+                : substitute
+                  ? `Add ${substitute.name} instead`
+                  : "No swap available"
+              : available
+                ? "Add to Workout"
+                : substitute
+                  ? `Add ${substitute.name} instead`
+                  : "No swap available"}
           </button>
         </div>
       </div>

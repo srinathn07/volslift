@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { t, font } from "@/lib/tokens";
-import { IconDumbbell, IconHome, IconClock, IconTrend, IconUser } from "./Icons";
+import { IconHome, IconClock, IconTrend, IconUser } from "./Icons";
 
 /**
  * Phone-shaped shell. Fills the viewport on a phone and centres at the design
@@ -152,11 +152,10 @@ function IconChevronLeftSmall() {
 }
 
 const TABS = [
-  { href: "/", label: "Home", Icon: IconHome },
-  { href: "/history", label: "History", Icon: IconClock },
-  { href: "/exercises", label: "Exercises", Icon: IconDumbbell },
-  { href: "/progress", label: "Progress", Icon: IconTrend },
-  { href: "/profile", label: "Profile", Icon: IconUser },
+  { href: "/",        label: "Home",     Icon: IconHome  },
+  { href: "/history", label: "History",  Icon: IconClock },
+  { href: "/progress",label: "Progress", Icon: IconTrend },
+  { href: "/profile", label: "Profile",  Icon: IconUser  },
 ];
 
 export function TabBar() {

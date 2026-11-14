@@ -91,6 +91,11 @@ export function suggestProgression(
   for (const session of window) {
     const working = session.sets.filter((s) => s.reps > 0);
     if (working.length === 0) return null;
+    // A session rebuilt from logged sets has repTarget 0 because a set row does
+    // not record the range it was prescribed against. Zero means the target is
+    // unknown, not met: `reps >= 0` holds for every set, so accepting it would
+    // progress the lifter off any two sessions whatever the reps were.
+    if (session.repTarget <= 0) return null;
     if (!working.every((s) => s.reps >= session.repTarget)) return null;
     for (const s of working) if (typeof s.rpe === "number") rpes.push(s.rpe);
   }
