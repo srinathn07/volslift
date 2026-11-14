@@ -1,31 +1,53 @@
 'use client';
 
-import { usePathname } from 'next/navigation';
-import { useRef, useEffect } from 'react';
+import { usePathname, useRouter } from 'next/navigation';
+import { useRef, useEffect, useState } from 'react';
+import { supabase } from '@/src/lib/supabase/client';
 import TabBar from './TabBar';
 
 /** Module-level store so scroll positions survive route changes without React state. */
 const scrollStore = new Map<string, number>();
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
-  const pathname = usePathname();
+  const pathname  = usePathname();
+  const router    = useRouter();
   const scrollRef = useRef<HTMLDivElement>(null);
-  const prevPath = useRef<string>(pathname);
+  const prevPath  = useRef<string>(pathname);
 
-  // /preview is a full-screen tool, not an app route — render bare.
-  if (pathname.startsWith('/preview')) {
-    return <>{children}</>;
-  }
+  const [authReady, setAuthReady] = useState(false);
+  const [authed,    setAuthed]    = useState(false);
 
+  // Auth guard — subscribe to session changes once on mount.
+  useEffect(() => {
+    supabase().auth.getSession().then(({ data }) => {
+      setAuthed(!!data.session);
+      setAuthReady(true);
+    });
+
+    const { data: { subscription } } = supabase().auth.onAuthStateChange((_event, session) => {
+      setAuthed(!!session);
+      setAuthReady(true);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  // Redirect unauthenticated users to sign-in (skip public routes).
+  const isPublic = pathname.startsWith('/preview') || pathname.startsWith('/sign-in');
+  useEffect(() => {
+    if (!isPublic && authReady && !authed) {
+      router.replace('/sign-in');
+    }
+  }, [isPublic, authReady, authed, router]);
+
+  // Scroll position preservation.
   useEffect(() => {
     const el = scrollRef.current;
     if (!el) return;
 
     if (prevPath.current !== pathname) {
-      // Save position for the page we just left.
       scrollStore.set(prevPath.current, el.scrollTop);
       prevPath.current = pathname;
-      // Restore position for the page we just entered.
       el.scrollTop = scrollStore.get(pathname) ?? 0;
     }
   }, [pathname]);
@@ -35,6 +57,14 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       scrollStore.set(pathname, scrollRef.current.scrollTop);
     }
   };
+
+  // Public routes bypass the shell entirely.
+  if (isPublic) return <>{children}</>;
+
+  // Show blank canvas while session resolves to avoid flash.
+  if (!authReady || !authed) {
+    return <div style={{ minHeight: '100dvh', background: 'var(--canvas)' }} />;
+  }
 
   return (
     /*

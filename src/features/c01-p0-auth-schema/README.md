@@ -60,6 +60,23 @@ phone. These are the minimum. Add any others this checkpoint needs.
 3. Hard refresh. Still signed in.
 4. Run the seed count query. Exercises and equipment units are both non-zero and match the seed file.
 
+## LAN dev origin — redirect allowlist steps
+
+The magic link's `emailRedirectTo` is set to `window.location.origin + '/log'`, so both
+`http://localhost:3000` and `http://<LAN-IP>:3000` must be in Supabase's allowed redirect URLs.
+
+1. Open the Supabase dashboard → **Authentication** → **URL Configuration**.
+2. Under **Redirect URLs**, click **Add URL** and add:
+   ```
+   http://localhost:3000/**
+   http://192.168.x.x:3000/**
+   ```
+   Replace `192.168.x.x` with your machine's LAN IP (`ifconfig | grep "inet "` on macOS).
+3. Under **Site URL**, set it to `http://localhost:3000` (or your primary dev URL).
+4. Click **Save**.
+
+After this, magic links sent while on the LAN will redirect back correctly on the phone that received the email.
+
 ## Notes
 
 - **Human task, do this first.** Send someone to TRECS with a notes app to count racks, benches, cable towers and the named machines, by zone. Real inventory is worth the hour and everything downstream depends on it.

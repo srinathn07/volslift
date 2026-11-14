@@ -73,3 +73,37 @@ width.
    screen. Open it. The browser status bar and surrounding chrome should be
    dark (matching the app background), not white.
    Expected: no white bar visible at the top or bottom.
+
+---
+
+## C1 auth and schema
+
+Run `npm run dev -- -H 0.0.0.0`. Paste the migration SQL and seed SQL in
+Supabase Dashboard → SQL Editor before running these steps. Add your machine's
+LAN IP to Supabase Authentication → URL Configuration → Redirect URLs
+(see `src/features/c01-p0-auth-schema/README.md`).
+
+1. **Sign in with a vols address.** Open the app. It redirects to `/sign-in`.
+   Enter a `netid@vols.utk.edu` address and tap "Send magic link".
+   Expected: "Check your email" screen appears with your address shown.
+   Open the email on your phone, tap the link.
+   Expected: you land on the Gym tab, the tab bar is visible, you are signed in.
+
+2. **Gmail address refused.** On the sign-in screen, enter a `@gmail.com`
+   address and tap "Send magic link".
+   Expected: an inline message appears saying sign-in is restricted to
+   `@vols.utk.edu` and `@utk.edu` addresses. No email is sent.
+
+3. **Hard refresh keeps you signed in.** After signing in, hard-refresh the
+   page (Cmd+Shift+R on Mac, or close and reopen the PWA on phone).
+   Expected: you remain on the app (Log/Gym/Plan/Me tabs), not redirected
+   to `/sign-in`.
+
+4. **Seed row counts match.** In Supabase Dashboard → SQL Editor, run:
+   ```sql
+   SELECT 'exercises' AS tbl, COUNT(*) FROM exercises
+   UNION ALL
+   SELECT 'equipment_units', COUNT(*) FROM equipment_units;
+   ```
+   Expected: exercises ≥ 70 rows, equipment_units ≥ 25 rows, both matching
+   the counts in `supabase/seed/seed.sql`.

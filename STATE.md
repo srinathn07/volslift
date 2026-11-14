@@ -1,26 +1,31 @@
 # State
 
-Last green checkpoint: C0 — c00-green
-Head commit: aa067ef C0 [claude]: bypass AppShell on /preview so tab bar doesn't double-render
-Branch: main (after squash merge)
+Last green checkpoint: C1 — c01-green (pending squash merge and tag)
+Head commit: (C1 branch, pre-merge)
+Branch: c01-p0-auth-schema → squash merge to main
 Last agent: claude
-Updated: 2026-11-13 19:25 ET
-Gate at last commit: PASS at 1540a4a. Three C0 refinement commits landed after it (phone frame, tab icons, preview shell bypass) and were verified by the user running the app, not by a re-run of the gate.
+Updated: 2026-11-13 20:15 ET
+Gate at last commit: PASS — tsc --noEmit && next build && vitest run all green.
 
 ## In progress
 
-Nothing. C0 is complete. Ready for C1.
+Nothing. C1 is complete. Ready for C2.
 
 ## Next action
 
-Start C1: auth and schema. Read `src/features/c01-p0-auth-schema/README.md`
-and build it to its done-when criteria. Requires Supabase credentials in
-`.env.local`.
+Start C2. Read the C2 checkpoint README before writing any code.
 
 ## Blocked on
 
-`.env.local` must exist with real Supabase keys before C1 can be verified.
-See `.env.example` for the required variable names.
+**User must complete before marking C1 verified:**
+1. Paste `supabase/migrations/20261113000000_initial_schema.sql` in Supabase
+   Dashboard → SQL Editor and run it.
+2. Paste `supabase/seed/seed.sql` in Supabase Dashboard → SQL Editor and run it.
+3. Run the RLS verification query at the bottom of the seed file. All 10 tables
+   must show `✓ ON`. Any `✗ OFF` is a blocker — do not proceed to C2.
+4. Add LAN dev origin to Supabase redirect allowlist (see C1 README).
+5. Create two dev test users manually: Dashboard → Authentication → Add User.
+6. Run C1 smoke items to confirm sign-in works end-to-end.
 
 ## Do not touch
 
