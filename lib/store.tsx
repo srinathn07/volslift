@@ -151,8 +151,8 @@ export function VolFitProvider({ children }: { children: React.ReactNode }) {
           setSyncStatus("syncing");
           pullRemote(session.user)
             .then(() => refreshHistory())
-            .then(() => setSyncStatus("idle"))
-            .catch(() => setSyncStatus("error"));
+            .catch((err) => console.error("[volfit] pullRemote failed:", err))
+            .finally(() => setSyncStatus("idle"));
         }
       },
     );

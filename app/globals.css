@@ -1,5 +1,5 @@
 :root {
-  color-scheme: dark;
+  color-scheme: light;
 }
 
 * {
@@ -10,8 +10,8 @@ html,
 body {
   margin: 0;
   padding: 0;
-  background: #0a0c0e;
-  color: #f4f5f6;
+  background: #ffffff;
+  color: #111827;
   font-family: "Inter", system-ui, -apple-system, sans-serif;
   -webkit-font-smoothing: antialiased;
   overscroll-behavior-y: none;
@@ -35,7 +35,7 @@ input {
 }
 
 input::placeholder {
-  color: #6a7178;
+  color: #9ca3af;
 }
 
 input[type="search"]::-webkit-search-cancel-button {
@@ -44,7 +44,7 @@ input[type="search"]::-webkit-search-cancel-button {
 
 /* Visible focus for keyboard users without a ring on every thumb tap. */
 :focus-visible {
-  outline: 2px solid #ff5a3c;
+  outline: 2px solid #ff8200;
   outline-offset: 2px;
 }
 

@@ -1,4 +1,4 @@
-import { SEED_HISTORY, trainedDays } from "./history";
+import { allHistory, trainedDays } from "./history";
 import { bestE1rm, tonnage } from "./strength";
 import type { SessionSummary } from "./types";
 
@@ -10,37 +10,28 @@ export interface WeekStats {
   prs: number;
 }
 
-/** Sessions in the trailing seven days. */
-export function recentSessions(days = 7, history: SessionSummary[] = SEED_HISTORY) {
+export function recentSessions(days = 7): SessionSummary[] {
   const cutoff = Date.now() - days * DAY;
-  return history.filter((s) => s.performedAt >= cutoff);
+  return allHistory().filter((s) => s.performedAt >= cutoff);
 }
 
-export function weekStats(history: SessionSummary[] = SEED_HISTORY): WeekStats {
-  const recent = recentSessions(7, history);
+export function weekStats(): WeekStats {
+  const recent = recentSessions(7);
   const volume = recent.reduce((sum, s) => sum + tonnage(s.sets), 0);
   const workouts = new Set(recent.map((s) => new Date(s.performedAt).toDateString())).size;
-  return { volume, workouts, prs: personalRecords(7, history).length };
+  return { volume, workouts, prs: personalRecords(7).length };
 }
 
 export interface PersonalRecord {
   exerciseId: string;
   performedAt: number;
-  /** Best estimated max in the window. */
   value: number;
-  /** Best estimated max before it, for the gain figure. */
   previous: number;
   topSet: { weight: number; reps: number };
 }
 
-/**
- * An exercise sets a PR when its best estimated max inside the window beats
- * everything logged before the window.
- */
-export function personalRecords(
-  days = 7,
-  history: SessionSummary[] = SEED_HISTORY,
-): PersonalRecord[] {
+export function personalRecords(days = 7): PersonalRecord[] {
+  const history = allHistory();
   const cutoff = Date.now() - days * DAY;
   const byExercise = new Map<string, SessionSummary[]>();
   for (const s of history) {
@@ -50,7 +41,7 @@ export function personalRecords(
   const records: PersonalRecord[] = [];
   for (const [exerciseId, sessions] of byExercise) {
     const inWindow = sessions.filter((s) => s.performedAt >= cutoff);
-    const before = sessions.filter((s) => s.performedAt < cutoff);
+    const before   = sessions.filter((s) => s.performedAt < cutoff);
     if (inWindow.length === 0) continue;
 
     const best = inWindow.reduce(
@@ -71,7 +62,7 @@ export function personalRecords(
     records.push({
       exerciseId,
       performedAt: best.session.performedAt,
-      value: Math.round(best.value),
+      value:    Math.round(best.value),
       previous: Math.round(previous),
       topSet: { weight: topSet.weight, reps: topSet.reps },
     });
@@ -80,14 +71,10 @@ export function personalRecords(
   return records.sort((a, b) => b.performedAt - a.performedAt);
 }
 
-/**
- * Length in days of the current unbroken chain. Rest days are allowed: the
- * chain only breaks after `allowedGap` consecutive days with nothing logged,
- * which is how a four-a-week lifter keeps a streak that means something.
- */
-export function chainDays(days: Set<string> = trainedDays(), allowedGap = 2): number {
+export function chainDays(allowedGap = 2): number {
+  const days  = trainedDays();
   const today = new Date();
-  let gap = 0;
+  let gap    = 0;
   let length = 0;
 
   for (let i = 0; i < 400; i++) {
@@ -104,26 +91,24 @@ export function chainDays(days: Set<string> = trainedDays(), allowedGap = 2): nu
   return length;
 }
 
-/** 16 weeks by 7 days of intensity levels, newest column last. */
-export function heatmap(days: Set<string> = trainedDays(), history = SEED_HISTORY): number[] {
-  const cells: number[] = [];
+/** 16 weeks × 7 days of intensity levels, oldest column first. */
+export function heatmap(): number[] {
+  const days        = trainedDays();
+  const history     = allHistory();
   const volumeByDay = new Map<string, number>();
   for (const s of history) {
     const key = new Date(s.performedAt).toDateString();
     volumeByDay.set(key, (volumeByDay.get(key) ?? 0) + tonnage(s.sets));
   }
 
+  const cells: number[] = [];
   for (let i = 111; i >= 0; i--) {
-    const date = new Date(Date.now() - i * DAY);
-    const key = date.toDateString();
-    if (!days.has(key)) {
-      cells.push(0);
-      continue;
-    }
+    const key = new Date(Date.now() - i * DAY).toDateString();
+    if (!days.has(key)) { cells.push(0); continue; }
     const volume = volumeByDay.get(key) ?? 0;
-    if (volume === 0) cells.push(1);
-    else if (volume < 6000) cells.push(2);
-    else cells.push(3);
+    if (volume === 0)        cells.push(1);
+    else if (volume < 6000)  cells.push(2);
+    else                     cells.push(3);
   }
   return cells;
 }
