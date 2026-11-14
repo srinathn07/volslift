@@ -58,6 +58,24 @@ Why, so nobody re-opens it:
 Accept the brief resolving state on first paint. That is the cost and it is
 cheap. Do not add `@supabase/ssr`, and do not create `middleware.ts`.
 
+**Two sign-in paths. Magic link is the product, password is the demo.**
+
+Supabase's built-in SMTP is rate limited to a handful of emails per hour, which
+is fine for real users and fatal for a hackathon demo. So:
+
+- **Magic link** stays as the real path, domain-restricted to `@vols.utk.edu`
+  and `@utk.edu`. This is what ships and what the pitch describes.
+- **Email plus password** is enabled for the two dashboard-created accounts.
+  It sends no email, so development and demos never touch the rate limit.
+- The sign-in screen carries a secondary "Use demo account" action that signs
+  in with credentials from `NEXT_PUBLIC_DEMO_EMAIL` and `DEMO_PASSWORD` in
+  `.env.local`. It renders only when those vars are present, so it cannot
+  appear in a build that lacks them.
+
+Auth is never removed and RLS is never loosened to work around the rate limit.
+Every own-rows policy keys off `auth.uid()`, so a session is always required.
+If you are tempted to disable auth, you have misdiagnosed the problem.
+
 ## Conventions
 
 - Feature folders under `src/features/`, see `AGENTS.md` for the rules
