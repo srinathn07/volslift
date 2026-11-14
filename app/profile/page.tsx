@@ -8,7 +8,7 @@ import { useStore } from "@/lib/store";
 import { font, t } from "@/lib/tokens";
 
 export default function ProfilePage() {
-  const { gym, gymCtx, availableOnly, setAvailableOnly,
+  const { gym, gymCtx, availableOnly, setAvailableOnly, busyRush, setBusyRush,
           authUser, syncStatus, signIn, signUp, signOut } = useStore();
   const [cleared, setCleared]     = useState(false);
   const [mode, setMode]           = useState<"signin" | "signup">("signin");
@@ -294,6 +294,60 @@ export default function ProfilePage() {
                   height: 20,
                   borderRadius: "50%",
                   background: availableOnly ? t.bg : t.surface,
+                }}
+              />
+            </span>
+          </button>
+
+          {/* Occupancy is simulated, and normally random per 5-minute window,
+              so whether anything is busy at a given moment is luck. This makes
+              the crowded case reproducible. */}
+          <button
+            type="button"
+            onClick={() => setBusyRush(!busyRush)}
+            role="switch"
+            aria-checked={busyRush}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 11,
+              background: t.surface,
+              border: `1px solid ${busyRush ? t.warning : t.border}`,
+              borderRadius: 14,
+              padding: "12px 13px",
+              textAlign: "left",
+              width: "100%",
+            }}
+          >
+            <IconSliders size={17} color={busyRush ? t.warning : t.textDim} />
+            <div style={{ display: "flex", flexDirection: "column", flex: 1, minWidth: 0, gap: 2 }}>
+              <span style={{ fontSize: 14, fontWeight: 600 }}>Simulate a busy gym</span>
+              <span style={{ fontSize: 11.5, lineHeight: 1.4, color: t.textDim }}>
+                {busyRush
+                  ? "Racks, benches and the leg press report full"
+                  : "Off, stations fill and empty on their own"}
+              </span>
+            </div>
+            <span
+              style={{
+                width: 44,
+                height: 26,
+                borderRadius: 13,
+                flexShrink: 0,
+                display: "flex",
+                alignItems: "center",
+                padding: 3,
+                boxSizing: "border-box",
+                justifyContent: busyRush ? "flex-end" : "flex-start",
+                background: busyRush ? t.warning : t.border,
+              }}
+            >
+              <span
+                style={{
+                  width: 20,
+                  height: 20,
+                  borderRadius: "50%",
+                  background: busyRush ? t.bg : t.surface,
                 }}
               />
             </span>

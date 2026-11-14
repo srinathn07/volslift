@@ -52,6 +52,7 @@ export interface RestTimer {
 const FIXED_GYM_ID  = "ut_rec";
 const ROUTINES_KEY  = "volfit.routines";
 const ONLY_KEY      = "volfit.availableOnly";
+const BUSY_KEY      = "volfit.busyRush";
 const DEFAULT_REST  = 90;
 
 const uid = () =>
@@ -71,6 +72,10 @@ interface StoreValue {
   gymCtx: GymContext;
   availableOnly: boolean;
   setAvailableOnly: (value: boolean) => void;
+
+  /** Simulate a rush: the queued stations report full. */
+  busyRush: boolean;
+  setBusyRush: (value: boolean) => void;
 
   routines: Routine[];
   saveRoutine: (routine: Routine) => void;
@@ -111,6 +116,7 @@ export function VolFitProvider({ children }: { children: React.ReactNode }) {
   const gymCtx = useMemo(() => buildGymContext(gym), [gym]);
 
   const [availableOnly, setAvailableOnlyState] = useState(true);
+  const [busyRush, setBusyRushState]           = useState(false);
   const [routines, setRoutines]                = useState<Routine[]>([]);
   const [history,  setHistory]                 = useState<SessionSummary[]>([]);
   const [session,  setSession]                 = useState<ActiveSession | null>(null);
@@ -134,13 +140,16 @@ export function VolFitProvider({ children }: { children: React.ReactNode }) {
     setHistory(allHistory());
   }, []);
 
-  // Refresh occupancy every 5 minutes to pick up the next LCG window.
+  // Refresh occupancy every 5 minutes to pick up the next LCG window, and
+  // immediately whenever the rush toggle changes so the effect is visible at
+  // once rather than at the next window boundary.
   useEffect(() => {
     const refresh = () =>
-      setOccupancy(gymOccupancySnapshot(FIXED_GYM_ID, gym?.equipment ?? []));
+      setOccupancy(gymOccupancySnapshot(FIXED_GYM_ID, gym?.equipment ?? [], busyRush));
+    refresh();
     const id = window.setInterval(refresh, 5 * 60 * 1000);
     return () => window.clearInterval(id);
-  }, [gym]);
+  }, [gym, busyRush]);
 
   // Keep authUser in sync with the Supabase session, and pull remote history
   // whenever the user signs in so a new device is populated immediately.
@@ -169,6 +178,9 @@ export function VolFitProvider({ children }: { children: React.ReactNode }) {
 
     const storedOnly = readLocal(ONLY_KEY);
     if (storedOnly !== null) setAvailableOnlyState(storedOnly === "true");
+
+    const storedBusy = readLocal(BUSY_KEY);
+    if (storedBusy !== null) setBusyRushState(storedBusy === "true");
 
     // Seeded routines are the fallback, not an empty list: a workout started
     // without a routine has no rep range, so it records no target and the
@@ -210,6 +222,11 @@ export function VolFitProvider({ children }: { children: React.ReactNode }) {
       });
     })();
   }, [refreshHistory]);
+
+  const setBusyRush = useCallback((value: boolean) => {
+    setBusyRushState(value);
+    writeLocal(BUSY_KEY, String(value));
+  }, []);
 
   const setAvailableOnly = useCallback((value: boolean) => {
     setAvailableOnlyState(value);
@@ -489,6 +506,7 @@ export function VolFitProvider({ children }: { children: React.ReactNode }) {
   const value: StoreValue = {
     gym, gymCtx,
     availableOnly, setAvailableOnly,
+    busyRush, setBusyRush,
     routines, saveRoutine, deleteRoutine,
     history,
     session, startEmpty, startRoutine,

@@ -24,13 +24,32 @@ function gymSeed(gymId: string): number {
 }
 
 /**
+ * The stations people actually queue for. Only these are filled when a busy
+ * gym is simulated: free weights and racks go first in a real rush, and
+ * leaving the machines and cables open is both realistic and necessary, since
+ * a swap needs somewhere to send you. Filling everything would mean no
+ * candidate was available and no swap could be offered at all.
+ */
+export const QUEUED_EQUIPMENT: readonly string[] = [
+  "barbell",
+  "squat_rack",
+  "bench",
+  "leg_press",
+];
+
+/**
  * Returns a deterministic occupancy snapshot for every piece of equipment
  * at the given gym.  The snapshot drifts slowly: the seed rotates every
  * 5 minutes, so values change gradually rather than jumping.
+ *
+ * With `busyRush` set, the queued stations above are reported full. Normal
+ * occupancy is random per window, so whether anything is busy at a given
+ * moment is luck; this makes the crowded case reproducible on demand.
  */
 export function gymOccupancySnapshot(
   gymId: string,
   equipmentIds: readonly string[],
+  busyRush = false,
 ): Map<string, OccupancySnapshot> {
   const window = Math.floor(Date.now() / 300_000); // 5-minute bucket
   const rand = lcg(gymSeed(gymId) ^ window);
@@ -39,7 +58,8 @@ export function gymOccupancySnapshot(
   const result = new Map<string, OccupancySnapshot>();
   for (const equipmentId of equipmentIds) {
     const total = randomTotal(rand);
-    const inUse = Math.floor(rand() * (total + 1));
+    const random = Math.floor(rand() * (total + 1));
+    const inUse = busyRush && QUEUED_EQUIPMENT.includes(equipmentId) ? total : random;
     result.set(equipmentId, { equipmentId, total, inUse, updatedAt });
   }
   return result;
