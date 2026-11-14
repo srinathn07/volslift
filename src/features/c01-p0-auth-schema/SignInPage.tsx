@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { supabase } from '@/src/lib/supabase/client';
 
 type UIState = 'idle' | 'loading' | 'sent' | 'error';
@@ -20,6 +21,7 @@ interface Props {
 }
 
 export default function SignInPage({ demoEmail, demoPassword }: Props) {
+  const router = useRouter();
   const [email,       setEmail]       = useState('');
   const [password,    setPassword]    = useState('');
   const [linkState,   setLinkState]   = useState<UIState>('idle');
@@ -80,7 +82,7 @@ export default function SignInPage({ demoEmail, demoPassword }: Props) {
       setPwState('error');
       setPwError(error.message);
     } else {
-      setPwState('idle');
+      router.replace('/log');
     }
   }
 
@@ -97,7 +99,7 @@ export default function SignInPage({ demoEmail, demoPassword }: Props) {
       setDemoState('error');
       setDemoError(error.message);
     } else {
-      setDemoState('idle');
+      router.replace('/log');
     }
   }
 
