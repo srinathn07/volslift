@@ -12,6 +12,11 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const prevPath = useRef<string>(pathname);
 
+  // /preview is a full-screen tool, not an app route — render bare.
+  if (pathname.startsWith('/preview')) {
+    return <>{children}</>;
+  }
+
   useEffect(() => {
     const el = scrollRef.current;
     if (!el) return;
