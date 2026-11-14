@@ -2,23 +2,31 @@ interface PlaceholderScreenProps {
   title: string;
 }
 
+/**
+ * Bare placeholder used by every tab until the real screen lands in a later
+ * checkpoint. Shows only the page title — intentional, not incomplete.
+ */
 export default function PlaceholderScreen({ title }: PlaceholderScreenProps) {
   return (
-    <div
-      style={{
-        padding: 'var(--space-4)',
-        paddingTop: 'var(--space-6)',
-      }}
-    >
-      <h1
+    <div style={{ padding: '0 16px' }}>
+      <header
         style={{
-          fontSize: 'var(--text-22)',
-          fontWeight: 600,
-          color: 'var(--ink)',
+          paddingTop: '14px',
+          paddingBottom: '10px',
+          borderBottom: '1px solid var(--hairline)',
         }}
       >
-        {title}
-      </h1>
+        <h1
+          style={{
+            fontSize: 'var(--text-22)',
+            fontWeight: 600,
+            color: 'var(--ink)',
+            lineHeight: 1.2,
+          }}
+        >
+          {title}
+        </h1>
+      </header>
     </div>
   );
 }
