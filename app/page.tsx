@@ -123,7 +123,7 @@ export default function HomePage() {
             <IconBolt />
           </div>
           <div style={{ display: "flex", flexDirection: "column", flex: 1, minWidth: 0, gap: 1 }}>
-            <span style={{ fontSize: 13.5, fontWeight: 600 }}>Coach</span>
+            <span style={{ fontSize: 13.5, fontWeight: 600 }}>Coach Smokey</span>
             <span style={{ fontSize: 12, color: t.textDim }}>
               Progression and deload, with the numbers
             </span>

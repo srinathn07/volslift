@@ -39,7 +39,7 @@ export default function CoachPage() {
     <Screen>
       <Header
         back="/"
-        title="Coach"
+        title="Coach Smokey"
         subtitle="Progression and deload from your own numbers"
       />
 
