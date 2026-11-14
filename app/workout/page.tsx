@@ -65,6 +65,21 @@ export default function WorkoutPage() {
   }
 
   const onFinish = () => {
+    // Only sets marked done are written to history, so finishing with none
+    // ticked discards the whole workout. Typing a weight and reps looks like
+    // logging, so say so rather than letting the session vanish.
+    const doneCount = session.exercises.reduce(
+      (n, ex) => n + ex.sets.filter((s) => s.done).length,
+      0,
+    );
+    if (doneCount === 0) {
+      const ok = window.confirm(
+        "No sets are marked done, so nothing will be saved to your history.\n\n" +
+          "Tap the circle at the end of a row to log that set.\n\n" +
+          "Finish and discard this workout anyway?",
+      );
+      if (!ok) return;
+    }
     finish();
     router.push("/");
   };
