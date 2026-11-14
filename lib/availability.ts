@@ -1,4 +1,6 @@
 import { EXERCISES, UBIQUITOUS_EQUIPMENT, exerciseById } from "./catalog";
+import { busyLevel, estimatedWaitMinutes } from "./occupancy";
+import type { OccupancySnapshot } from "./occupancy";
 import type { Exercise, Gym, Muscle } from "./types";
 
 /**
@@ -123,6 +125,75 @@ export function similarity(target: Exercise, candidate: Exercise): number {
   if (score === 0) return 0;
   score -= Math.abs(candidate.loadClass - target.loadClass);
   return score;
+}
+
+export interface SwapCandidate {
+  exercise: Exercise;
+  score: number;
+  /** Estimated minutes to wait for this equipment; 0 when equipment is free. */
+  waitMinutes: number;
+  /** Plain sentence explaining why this is a good swap; same contract as coach cards. */
+  evidence: string;
+}
+
+/**
+ * Top-3 alternatives for a busy exercise, respecting both gym availability
+ * and current occupancy.
+ *
+ * Training reason: offering a swap to equipment that is equally busy wastes
+ * the user's time. Curated substitutes win when they are reachable AND not
+ * busy; scored fallbacks fill the remaining slots.
+ */
+export function substitutesForBusy(
+  exercise: Exercise,
+  ctx: GymContext,
+  occupancy: Map<string, OccupancySnapshot>,
+  catalog: Exercise[] = EXERCISES,
+): SwapCandidate[] {
+  const isReachableAndFree = (c: Exercise): boolean => {
+    if (!ctx.availableIds.has(c.id)) return false;
+    const snap = occupancy.get(c.equipment);
+    if (!snap) return true; // no data → assume available
+    return busyLevel(snap) !== "busy";
+  };
+
+  const makeCandidate = (c: Exercise, score: number): SwapCandidate => {
+    const snap = occupancy.get(c.equipment);
+    const waitMinutes = snap ? estimatedWaitMinutes(snap) : 0;
+    return {
+      exercise: c,
+      score,
+      waitMinutes,
+      evidence: `${c.name} hits the same ${c.muscle.toLowerCase()} with a ${c.pattern.replace(/_/g, " ")} pattern and is available now.`,
+    };
+  };
+
+  const candidates: SwapCandidate[] = [];
+
+  // Curated substitutes win when reachable and not busy.
+  for (const id of exercise.substitutes ?? []) {
+    if (candidates.length >= 3) break;
+    const c = exerciseById(id);
+    if (c && isReachableAndFree(c)) candidates.push(makeCandidate(c, 100));
+  }
+
+  if (candidates.length >= 3) return candidates;
+
+  // Scored fallbacks fill remaining slots (similarity() already enforces
+  // the isolation-never-crosses-muscles invariant via a zero score).
+  const alreadyPicked = new Set(candidates.map((x) => x.exercise.id));
+  const scored = catalog
+    .filter((c) => c.id !== exercise.id && !alreadyPicked.has(c.id) && isReachableAndFree(c))
+    .map((c) => ({ c, score: similarity(exercise, c) }))
+    .filter((x) => x.score > 0)
+    .sort((a, b) => b.score - a.score || a.c.name.localeCompare(b.c.name));
+
+  for (const { c, score } of scored) {
+    if (candidates.length >= 3) break;
+    candidates.push(makeCandidate(c, score));
+  }
+
+  return candidates;
 }
 
 /** Exercises in a routine that the selected gym cannot load, with their swaps. */

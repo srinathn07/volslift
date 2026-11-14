@@ -2,9 +2,12 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useState } from "react";
 import { Screen } from "@/components/Shell";
-import { IconCheck, IconDots, IconPlus, IconSliders } from "@/components/Icons";
-import { exerciseById } from "@/lib/catalog";
+import { IconCheck, IconDots, IconPlus, IconSwap, IconX } from "@/components/Icons";
+import { substituteFor, substitutesForBusy, type SwapCandidate } from "@/lib/availability";
+import { equipmentName, exerciseById } from "@/lib/catalog";
+import { busyLevel, shouldOfferSwap, type OccupancySnapshot } from "@/lib/occupancy";
 import { formatClock, useElapsed, useStore, type ActiveExercise } from "@/lib/store";
 import { font, muscleTint, t } from "@/lib/tokens";
 
@@ -13,8 +16,10 @@ const REST_OPTIONS = [30, 60, 90, 120, 0];
 
 export default function WorkoutPage() {
   const router = useRouter();
-  const { session, tonnage, finish } = useStore();
+  const store = useStore();
+  const { session, tonnage, finish, gymCtx, swapExercise, rest, occupancy } = store;
   const elapsed = useElapsed(session?.startedAt ?? null);
+  const [dismissedSwapIds, setDismissedSwapIds] = useState<Set<string>>(new Set());
 
   if (!session) {
     return (
@@ -100,23 +105,6 @@ export default function WorkoutPage() {
             </span>
           </div>
         </div>
-        <Link
-          href="/gym"
-          aria-label="Workout settings"
-          style={{
-            width: 38,
-            height: 38,
-            borderRadius: 11,
-            background: t.surface2,
-            border: `1px solid ${t.border}`,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            flexShrink: 0,
-          }}
-        >
-          <IconSliders size={18} color={t.textSoft} />
-        </Link>
         <button
           type="button"
           onClick={onFinish}
@@ -163,11 +151,57 @@ export default function WorkoutPage() {
           >
             <span style={{ fontSize: 14.5, fontWeight: 600 }}>Nothing logged yet</span>
             <span style={{ fontSize: 12.5, color: t.textDim, textAlign: "center" }}>
-              Add an exercise to start. The picker only offers what this gym can load.
+              Add an exercise to start.
             </span>
           </div>
         ) : (
-          session.exercises.map((ex) => <ExerciseCard key={ex.exerciseId} active={ex} />)
+          session.exercises.map((ex) => {
+            const available = gymCtx.availableIds.has(ex.exerciseId);
+            const exercise = exerciseById(ex.exerciseId);
+
+            if (!available) {
+              const sub = exercise ? substituteFor(exercise, gymCtx) : null;
+              return (
+                <UnavailableCard
+                  key={ex.exerciseId}
+                  exerciseId={ex.exerciseId}
+                  substituteId={sub?.id ?? null}
+                  onSwap={swapExercise}
+                />
+              );
+            }
+
+            const equipSnap = exercise ? occupancy.get(exercise.equipment) : undefined;
+            const offerSwap = equipSnap
+              ? shouldOfferSwap(equipSnap, rest.duration)
+              : false;
+            const dismissed = dismissedSwapIds.has(ex.exerciseId);
+            const candidates =
+              offerSwap && exercise && !dismissed
+                ? substitutesForBusy(exercise, gymCtx, occupancy)
+                : [];
+
+            return (
+              <div
+                key={ex.exerciseId}
+                style={{ display: "flex", flexDirection: "column", gap: 8 }}
+              >
+                <ExerciseCard active={ex} />
+                {equipSnap && <OccupancyMeter snap={equipSnap} />}
+                {offerSwap && !dismissed && candidates.length > 0 && (
+                  <SwapOfferCard
+                    exerciseId={ex.exerciseId}
+                    candidates={candidates}
+                    sessionName={session.name}
+                    onSwap={swapExercise}
+                    onDismiss={() =>
+                      setDismissedSwapIds((prev) => new Set([...prev, ex.exerciseId]))
+                    }
+                  />
+                )}
+              </div>
+            );
+          })
         )}
       </div>
 
@@ -180,7 +214,7 @@ export default function WorkoutPage() {
           maxWidth: 430,
           boxSizing: "border-box",
           padding: "14px 16px calc(22px + env(safe-area-inset-bottom)) 16px",
-          background: `linear-gradient(to top, ${t.bg} 55%, rgba(10,12,14,0))`,
+          background: `linear-gradient(to top, ${t.bg} 55%, rgba(255,255,255,0))`,
         }}
       >
         <Link
@@ -205,6 +239,83 @@ export default function WorkoutPage() {
 
       <RestSheet />
     </Screen>
+  );
+}
+
+function UnavailableCard({
+  exerciseId,
+  substituteId,
+  onSwap,
+}: {
+  exerciseId: string;
+  substituteId: string | null;
+  onSwap: (oldId: string, newId: string) => void;
+}) {
+  const exercise = exerciseById(exerciseId);
+  const substitute = substituteId ? exerciseById(substituteId) : null;
+  if (!exercise) return null;
+
+  return (
+    <div
+      style={{
+        background: t.surface,
+        border: `1px solid ${t.border}`,
+        borderRadius: 16,
+        padding: "14px 13px",
+        display: "flex",
+        flexDirection: "column",
+        gap: 10,
+      }}
+    >
+      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+        <div
+          style={{
+            width: 36,
+            height: 36,
+            borderRadius: 10,
+            background: t.warningSoft,
+            border: `1px solid ${t.warning}`,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            flexShrink: 0,
+          }}
+        >
+          <IconSwap size={17} color={t.warning} />
+        </div>
+        <div style={{ display: "flex", flexDirection: "column", flex: 1, minWidth: 0, gap: 1 }}>
+          <span style={{ fontSize: 14.5, fontWeight: 600 }}>{exercise.name}</span>
+          <span style={{ fontSize: 12, color: t.warning }}>Not available at this gym</span>
+        </div>
+      </div>
+
+      {substitute ? (
+        <button
+          type="button"
+          onClick={() => onSwap(exerciseId, substitute.id)}
+          style={{
+            height: 40,
+            borderRadius: 11,
+            background: t.accentSoft,
+            border: `1px solid ${t.borderAccent}`,
+            color: t.accentText,
+            fontSize: 13.5,
+            fontWeight: 600,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: 7,
+          }}
+        >
+          <IconSwap size={15} color={t.accent} />
+          Swap to {substitute.name}
+        </button>
+      ) : (
+        <span style={{ fontSize: 12.5, color: t.textDim }}>
+          No substitute available — remove this exercise or add your own.
+        </span>
+      )}
+    </div>
   );
 }
 
@@ -233,7 +344,7 @@ function ExerciseCard({ active }: { active: ActiveExercise }) {
             height: 38,
             borderRadius: 11,
             background: t.surface2,
-            border: "1px solid #2A2F35",
+            border: `1px solid ${t.border}`,
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
@@ -315,7 +426,7 @@ function ExerciseCard({ active }: { active: ActiveExercise }) {
               alignItems: "center",
               padding: "3px 2px",
               borderRadius: 10,
-              background: set.done ? "rgba(53,210,138,0.07)" : "transparent",
+              background: set.done ? "rgba(22,163,74,0.07)" : "transparent",
             }}
           >
             <span
@@ -352,7 +463,7 @@ function ExerciseCard({ active }: { active: ActiveExercise }) {
                 height: 34,
                 borderRadius: 9,
                 background: set.done ? t.success : t.surface2,
-                border: `1px solid ${set.done ? t.success : "#2A2F35"}`,
+                border: `1px solid ${set.done ? t.success : t.border}`,
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
@@ -360,7 +471,7 @@ function ExerciseCard({ active }: { active: ActiveExercise }) {
                 transition: "background 120ms ease",
               }}
             >
-              <IconCheck size={15} color={set.done ? t.bg : "#565C63"} />
+              <IconCheck size={15} color={set.done ? t.bg : t.textFaint} />
             </button>
           </div>
         ))}
@@ -373,7 +484,7 @@ function ExerciseCard({ active }: { active: ActiveExercise }) {
           height: 36,
           borderRadius: 10,
           background: "none",
-          border: `1px dashed ${"#2E343A"}`,
+          border: `1px dashed ${t.borderStrong}`,
           color: t.textDim,
           fontSize: 12.5,
           fontWeight: 600,
@@ -428,7 +539,7 @@ function NumberField({
         height: 34,
         borderRadius: 9,
         background: t.surface2,
-        border: "1px solid #2A2F35",
+        border: `1px solid ${t.border}`,
         color: t.text,
         fontFamily: font.mono,
         fontWeight: 600,
@@ -457,7 +568,7 @@ function RestSheet() {
       style={{
         position: "fixed",
         inset: 0,
-        background: "rgba(5,6,8,0.72)",
+        background: "rgba(0,0,0,0.50)",
         display: "flex",
         flexDirection: "column",
         justifyContent: "flex-end",
@@ -471,7 +582,7 @@ function RestSheet() {
           margin: "0 auto",
           boxSizing: "border-box",
           background: t.surface,
-          borderTop: "1px solid #2A2F35",
+          borderTop: `1px solid ${t.border}`,
           borderRadius: "24px 24px 0 0",
           padding: "14px 20px calc(26px + env(safe-area-inset-bottom)) 20px",
           display: "flex",
@@ -500,7 +611,7 @@ function RestSheet() {
             aria-hidden
             style={{ position: "absolute", top: 0, left: 0, transform: "rotate(-90deg)" }}
           >
-            <circle cx="64" cy="64" r="56" fill="none" stroke="#242A30" strokeWidth={8} />
+            <circle cx="64" cy="64" r="56" fill="none" stroke={t.borderSoft} strokeWidth={8} />
             <circle
               cx="64"
               cy="64"
@@ -535,7 +646,7 @@ function RestSheet() {
                   height: 38,
                   padding: "0 15px",
                   borderRadius: 19,
-                  border: `1px solid ${selected ? t.accent : "#2E343A"}`,
+                  border: `1px solid ${selected ? t.accent : t.border}`,
                   background: selected ? t.accentSoft : t.surface2,
                   color: selected ? t.accentText : t.textSoft,
                   fontFamily: font.mono,
@@ -594,4 +705,199 @@ function equipmentLabel(id: string): string {
     .split("_")
     .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
     .join(" ");
+}
+
+function OccupancyMeter({ snap }: { snap: OccupancySnapshot }) {
+  const level = busyLevel(snap);
+  const ratio = snap.total > 0 ? Math.min(1, snap.inUse / snap.total) : 0;
+  const barColor =
+    level === "busy" ? t.warning : level === "moderate" ? t.accent : t.success;
+  const name = equipmentName(snap.equipmentId);
+  const ariaLabel = `${name}: ${snap.inUse} of ${snap.total} in use`;
+
+  return (
+    <div
+      role="img"
+      aria-label={ariaLabel}
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: 10,
+        padding: "7px 13px",
+        background: t.surface,
+        border: `1px solid ${t.border}`,
+        borderRadius: 11,
+      }}
+    >
+      <div
+        style={{
+          flex: 1,
+          height: 4,
+          background: t.borderSoft,
+          borderRadius: 2,
+          overflow: "hidden",
+        }}
+      >
+        <div
+          style={{
+            width: `${ratio * 100}%`,
+            height: "100%",
+            background: barColor,
+            borderRadius: 2,
+          }}
+        />
+      </div>
+      <span
+        style={{
+          fontFamily: font.mono,
+          fontSize: 11.5,
+          color: t.textDim,
+          flexShrink: 0,
+        }}
+      >
+        {snap.inUse} of {snap.total} in use
+      </span>
+    </div>
+  );
+}
+
+function SwapOfferCard({
+  exerciseId,
+  candidates,
+  sessionName,
+  onSwap,
+  onDismiss,
+}: {
+  exerciseId: string;
+  candidates: SwapCandidate[];
+  sessionName: string;
+  onSwap: (oldId: string, newId: string) => void;
+  onDismiss: () => void;
+}) {
+  const [whyOpen, setWhyOpen] = useState(false);
+  const [fetchedSentence, setFetchedSentence] = useState<string | null>(null);
+  const top = candidates[0];
+  if (!top) return null;
+
+  const exercise = exerciseById(exerciseId);
+  const displaySentence = fetchedSentence ?? top.evidence;
+
+  const handleWhyToggle = () => {
+    setWhyOpen((prev) => {
+      const opening = !prev;
+      if (opening && !fetchedSentence) {
+        void fetch("/api/swap-reason", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            candidateIds: candidates.map((c) => c.exercise.id),
+            candidates: candidates.map((c) => ({ id: c.exercise.id, evidence: c.evidence })),
+            exerciseName: exercise?.name ?? exerciseId,
+            sessionName,
+          }),
+        })
+          .then((r) => r.json() as Promise<{ sentence?: string }>)
+          .then((d) => { if (d.sentence) setFetchedSentence(d.sentence); })
+          .catch(() => { /* use static evidence */ });
+      }
+      return opening;
+    });
+  };
+
+  return (
+    <div
+      style={{
+        background: t.accentSoft,
+        border: `1px solid ${t.borderAccent}`,
+        borderRadius: 14,
+        padding: "12px 13px",
+        display: "flex",
+        flexDirection: "column",
+        gap: 10,
+      }}
+    >
+      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <span
+          style={{ flex: 1, fontSize: 13.5, fontWeight: 700, color: t.accentText }}
+        >
+          Find a swap
+        </span>
+        {top.waitMinutes > 0 && (
+          <span
+            style={{ fontFamily: font.mono, fontSize: 11.5, color: t.textDim }}
+          >
+            ~{top.waitMinutes} min wait
+          </span>
+        )}
+        <button
+          type="button"
+          onClick={onDismiss}
+          aria-label="Dismiss swap suggestion"
+          style={{
+            width: 28,
+            height: 28,
+            borderRadius: 8,
+            background: "none",
+            border: "none",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: 0,
+            flexShrink: 0,
+          }}
+        >
+          <IconX size={14} color={t.textFaint} />
+        </button>
+      </div>
+
+      <button
+        type="button"
+        onClick={() => onSwap(exerciseId, top.exercise.id)}
+        style={{
+          height: 42,
+          borderRadius: 11,
+          background: t.accentSoft,
+          border: `1px solid ${t.borderAccent}`,
+          color: t.accentText,
+          fontSize: 13.5,
+          fontWeight: 600,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: 7,
+        }}
+      >
+        <IconSwap size={15} color={t.accent} />
+        Swap to {top.exercise.name}
+      </button>
+
+      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+        <button
+          type="button"
+          onClick={handleWhyToggle}
+          aria-expanded={whyOpen}
+          style={{
+            background: "none",
+            border: "none",
+            padding: 0,
+            fontSize: 12,
+            fontWeight: 600,
+            color: t.textDim,
+            textAlign: "left",
+            display: "flex",
+            alignItems: "center",
+            gap: 5,
+          }}
+        >
+          Why this swap?
+          <span style={{ fontSize: 10 }}>{whyOpen ? "▴" : "▾"}</span>
+        </button>
+        {whyOpen && (
+          <span style={{ fontSize: 12, color: t.textDim, lineHeight: 1.5 }}>
+            {displaySentence}
+          </span>
+        )}
+      </div>
+    </div>
+  );
 }
