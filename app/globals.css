@@ -1,0 +1,76 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ─── Design tokens ────────────────────────────────────────────────────────── */
+:root {
+  /* Colors */
+  --canvas:   #0E0E0F;
+  --surface:  #1A1A1C;
+  --raised:   #242428;
+  --ink:      #F5F4F2;
+  --ink-muted:#9A9792;
+  --hairline: rgba(245, 244, 242, 0.10);
+  --accent:   #FF8200;
+  --on-accent:#0E0E0F;
+  --free:     #4ADE80;
+  --busy:     #F87171;
+  --unknown:  #6B6B70;
+
+  /* Type scale */
+  --text-12: 12px;
+  --text-13: 13px;
+  --text-15: 15px;
+  --text-17: 17px;
+  --text-22: 22px;
+  --text-28: 28px;
+  --text-40: 40px;
+
+  /* Spacing */
+  --space-1:  4px;
+  --space-2:  8px;
+  --space-3:  12px;
+  --space-4:  16px;
+  --space-6:  24px;
+  --space-8:  32px;
+  --space-12: 48px;
+
+  /* Shape */
+  --radius-card:  8px;
+  --radius-sheet: 12px;
+}
+
+/* ─── Reset ─────────────────────────────────────────────────────────────────── */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+/* ─── Base ───────────────────────────────────────────────────────────────────── */
+html {
+  background-color: var(--canvas);
+  color-scheme: dark;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-size: var(--text-15);
+  font-weight: 400;
+  line-height: 1.5;
+  color: var(--ink);
+  background-color: var(--canvas);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  /* Tabular numerals everywhere */
+  font-variant-numeric: tabular-nums;
+  /* Prevent horizontal scroll */
+  overflow-x: hidden;
+}
+
+/* ─── Preview debug toggle ───────────────────────────────────────────────────── */
+.show-outlines * {
+  outline: 1px solid var(--accent) !important;
+}

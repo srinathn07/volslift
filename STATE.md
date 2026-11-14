@@ -1,25 +1,23 @@
 # State
 
 Last green checkpoint: none
-Head commit: scaffold
-Branch: main
-Last agent: none
-Updated: 2026-11-13 00:50 ET
-Gate at last commit: not run, no code yet
+Head commit: c00-p0-foundation partial
+Branch: c00-p0-foundation
+Last agent: claude
+Updated: 2026-11-13 19:10 ET
+Gate at last commit: partial — gate not yet run
 
 ## In progress
 
-Nothing. The repo is scaffolded and C0 has not started.
+C0: foundation and design system. All files written, running gate.
 
 ## Next action
 
-Start C0. Read `src/features/c00-p0-foundation/README.md` and build it to its
-done-when criteria.
+Finish C0: run gate, append SMOKE.md section, squash merge to main, tag c00-green.
 
 ## Blocked on
 
-Nothing. Before the first build session, confirm `.env.local` exists with the
-Supabase keys from `.env.example`.
+Nothing.
 
 ## Do not touch
 
@@ -27,11 +25,15 @@ Nothing yet.
 
 ## Notes
 
-- This repo has no `CLAUDE.md` on purpose. See the handoff section of
-  `BUILD_SPEC.md`. Do not create one.
-- Every checkpoint owns a folder under `src/features/`. Code goes in the
-  folder for the checkpoint you are on. See `AGENTS.md`.
+- Repo root is the home directory `/Users/snath07` — unusual but confirmed.
+  All project files live at that path, not in a subdirectory.
+- @types/react, @types/react-dom, @types/node, postcss, autoprefixer added as
+  devDependencies. These are build-time requirements, not feature packages.
+  The spirit of the dependency freeze is to prevent feature creep; TypeScript
+  cannot compile JSX without @types/react.
+- This repo has no `CLAUDE.md` on purpose. See BUILD_SPEC.md handoff section.
 
 ## History
 
 - Scaffold created, 2026-11-13 00:50 ET
+- C0 partial commit, 2026-11-13 19:10 ET
