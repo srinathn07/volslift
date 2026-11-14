@@ -9,6 +9,7 @@ import { exerciseById } from "@/lib/catalog";
 import { useStore } from "@/lib/store";
 import { font, t } from "@/lib/tokens";
 import type { RoutineExercise } from "@/lib/types";
+import type { GeneratedDay } from "@/lib/routineGen";
 
 const DRAFT_KEY = "volfit.routine_draft";
 
@@ -19,10 +20,54 @@ export default function RoutineBuilderPage() {
 function RoutineBuilderContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { saveRoutine } = useStore();
+  const { saveRoutine, gym } = useStore();
   const [name, setName] = useState("");
   const [entries, setEntries] = useState<RoutineExercise[]>([]);
   const [restored, setRestored] = useState(false);
+
+  // Generator state.
+  const [prompt, setPrompt] = useState("");
+  const [generating, setGenerating] = useState(false);
+  const [generated, setGenerated] = useState<GeneratedDay[] | null>(null);
+  const [source, setSource] = useState<"model" | "fallback" | null>(null);
+
+  const generate = async () => {
+    if (generating || prompt.trim().length === 0) return;
+    setGenerating(true);
+    setGenerated(null);
+    try {
+      const res = await fetch("/api/generate-routine", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ request: prompt, gymId: gym.id }),
+      });
+      const data = (await res.json()) as { days: GeneratedDay[]; source: "model" | "fallback" };
+      setSource(data.source);
+      // A single day goes straight into the editor so it can be adjusted
+      // before saving. Several days are previewed and saved together, since
+      // this screen only edits one routine at a time.
+      if (data.days.length === 1) {
+        setName(data.days[0].name);
+        setEntries(data.days[0].exercises);
+        setGenerated(null);
+      } else {
+        setGenerated(data.days);
+      }
+    } catch {
+      setSource("fallback");
+      setGenerated(null);
+    } finally {
+      setGenerating(false);
+    }
+  };
+
+  const saveAll = (days: GeneratedDay[]) => {
+    days.forEach((d, i) =>
+      saveRoutine({ id: `${Date.now()}-${i}`, name: d.name, exercises: d.exercises }),
+    );
+    sessionStorage.removeItem(DRAFT_KEY);
+    router.push("/");
+  };
 
   // Restore draft from sessionStorage on mount.
   useEffect(() => {
@@ -148,6 +193,110 @@ function RoutineBuilderContent() {
       </div>
 
       <Body padTop={18} gap={18}>
+        {/* Generator. The model proposes; lib/routineGen.ts decides what survives. */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          <label htmlFor="routine-prompt">
+            <SectionLabel>DESCRIBE IT</SectionLabel>
+          </label>
+          <textarea
+            id="routine-prompt"
+            rows={3}
+            placeholder={`e.g. 4 days a week, upper/lower, 45 minutes a session, my left shoulder hates overhead pressing`}
+            value={prompt}
+            onChange={(e) => setPrompt(e.target.value)}
+            style={{
+              boxSizing: "border-box",
+              borderRadius: 13,
+              background: t.surface,
+              border: `1px solid ${t.border}`,
+              color: t.text,
+              fontFamily: "inherit",
+              fontSize: 14,
+              lineHeight: 1.5,
+              padding: "12px 14px",
+              resize: "vertical",
+            }}
+          />
+          <button
+            type="button"
+            onClick={generate}
+            disabled={generating || prompt.trim().length === 0}
+            style={{
+              height: 46,
+              borderRadius: 13,
+              border: "none",
+              background: prompt.trim().length === 0 ? t.surface2 : t.accent,
+              color: prompt.trim().length === 0 ? t.textFaint : t.bg,
+              fontFamily: font.display,
+              fontWeight: 700,
+              fontSize: 15,
+            }}
+          >
+            {generating ? "Building…" : "Build it for me"}
+          </button>
+          <span style={{ fontSize: 11, lineHeight: 1.5, color: t.textFaint }}>
+            Only uses exercises {gym.name} can actually load. Sets and rep ranges
+            are suggestions; weights come from your own history.
+          </span>
+          {source === "fallback" ? (
+            <span style={{ fontSize: 11.5, lineHeight: 1.45, color: t.warning }}>
+              Built from the equipment list rather than your description. Edit it
+              below, or try again.
+            </span>
+          ) : null}
+        </div>
+
+        {generated && generated.length > 1 ? (
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            <SectionLabel>{generated.length} DAYS</SectionLabel>
+            {generated.map((d) => (
+              <div
+                key={d.name}
+                style={{
+                  background: t.surface,
+                  border: `1px solid ${t.border}`,
+                  borderRadius: 13,
+                  padding: "11px 13px",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 6,
+                }}
+              >
+                <span style={{ fontSize: 14, fontWeight: 600 }}>{d.name}</span>
+                {d.exercises.map((e) => (
+                  <div
+                    key={e.exerciseId}
+                    style={{ display: "flex", alignItems: "baseline", gap: 8 }}
+                  >
+                    <span style={{ flex: 1, minWidth: 0, fontSize: 12.5, color: t.textSoft }}>
+                      {exerciseById(e.exerciseId)?.name ?? e.exerciseId}
+                    </span>
+                    <span style={{ fontFamily: font.mono, fontSize: 11.5, color: t.textDim }}>
+                      {e.targetSets} × {e.repLow}-{e.repHigh}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            ))}
+            <button
+              type="button"
+              onClick={() => saveAll(generated)}
+              style={{
+                height: 46,
+                borderRadius: 13,
+                border: "none",
+                background: t.accent,
+                color: t.bg,
+                fontFamily: font.display,
+                fontWeight: 700,
+                fontSize: 15,
+              }}
+            >
+              Save all {generated.length} routines
+            </button>
+          </div>
+        ) : null}
+
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
           <label htmlFor="routine-name">
             <SectionLabel>ROUTINE NAME</SectionLabel>
