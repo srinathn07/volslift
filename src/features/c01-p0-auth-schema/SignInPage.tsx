@@ -12,24 +12,39 @@ function isAllowed(email: string): boolean {
   return ALLOWED_DOMAINS.some((d) => lower.endsWith(d));
 }
 
-export default function SignInPage() {
-  const [email,       setEmail]       = useState('');
-  const [state,       setState]       = useState<UIState>('idle');
-  const [domainError, setDomainError] = useState('');
-  const [errorMsg,    setErrorMsg]    = useState('');
+interface Props {
+  /** Injected server-side from NEXT_PUBLIC_DEMO_EMAIL. Null = hide demo button. */
+  demoEmail:    string | null;
+  /** Injected server-side from DEMO_PASSWORD. Null = hide demo button. */
+  demoPassword: string | null;
+}
 
-  async function handleSubmit(e: React.FormEvent) {
+export default function SignInPage({ demoEmail, demoPassword }: Props) {
+  const [email,       setEmail]       = useState('');
+  const [password,    setPassword]    = useState('');
+  const [linkState,   setLinkState]   = useState<UIState>('idle');
+  const [pwState,     setPwState]     = useState<UIState>('idle');
+  const [demoState,   setDemoState]   = useState<UIState>('idle');
+  const [domainError, setDomainError] = useState('');
+  const [linkError,   setLinkError]   = useState('');
+  const [pwError,     setPwError]     = useState('');
+  const [demoError,   setDemoError]   = useState('');
+
+  const busy     = linkState === 'loading' || pwState === 'loading' || demoState === 'loading';
+  const showDemo = !!(demoEmail && demoPassword);
+
+  /* ── Magic link ──────────────────────────────────────────────────────────── */
+  async function handleMagicLink(e: React.FormEvent) {
     e.preventDefault();
     setDomainError('');
-    setErrorMsg('');
+    setLinkError('');
 
     if (!isAllowed(email)) {
-      // Domain refused — no network request made.
       setDomainError('Sign-in is restricted to @vols.utk.edu and @utk.edu addresses.');
       return;
     }
 
-    setState('loading');
+    setLinkState('loading');
     const { error } = await supabase().auth.signInWithOtp({
       email: email.toLowerCase().trim(),
       options: {
@@ -41,15 +56,53 @@ export default function SignInPage() {
     });
 
     if (error) {
-      setState('error');
-      setErrorMsg(error.message);
+      setLinkState('error');
+      setLinkError(error.message);
     } else {
-      setState('sent');
+      setLinkState('sent');
+    }
+  }
+
+  /* ── Password ────────────────────────────────────────────────────────────── */
+  async function handlePassword(e: React.FormEvent) {
+    e.preventDefault();
+    setPwError('');
+    if (!email || !password) {
+      setPwError('Enter your email address and password.');
+      return;
+    }
+    setPwState('loading');
+    const { error } = await supabase().auth.signInWithPassword({
+      email:    email.toLowerCase().trim(),
+      password,
+    });
+    if (error) {
+      setPwState('error');
+      setPwError(error.message);
+    } else {
+      setPwState('idle');
+    }
+  }
+
+  /* ── Demo account ────────────────────────────────────────────────────────── */
+  async function handleDemo() {
+    if (!demoEmail || !demoPassword) return;
+    setDemoError('');
+    setDemoState('loading');
+    const { error } = await supabase().auth.signInWithPassword({
+      email:    demoEmail,
+      password: demoPassword,
+    });
+    if (error) {
+      setDemoState('error');
+      setDemoError(error.message);
+    } else {
+      setDemoState('idle');
     }
   }
 
   /* ── Sent state ──────────────────────────────────────────────────────────── */
-  if (state === 'sent') {
+  if (linkState === 'sent') {
     return (
       <div style={styles.root}>
         <div style={styles.top}>
@@ -66,7 +119,7 @@ export default function SignInPage() {
         <div style={styles.bottom}>
           <button
             style={{ ...styles.btn, background: 'var(--surface)', color: 'var(--ink-muted)' }}
-            onClick={() => { setState('idle'); setEmail(''); }}
+            onClick={() => { setLinkState('idle'); setEmail(''); }}
           >
             Use a different address
           </button>
@@ -85,7 +138,8 @@ export default function SignInPage() {
       <div style={styles.mid}>
         <p style={styles.heading}>Sign in</p>
 
-        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        {/* ── Shared email input ── */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           <label style={styles.label} htmlFor="email-input">
             UTK email address
           </label>
@@ -100,34 +154,95 @@ export default function SignInPage() {
             value={email}
             onChange={(e) => { setEmail(e.target.value); setDomainError(''); }}
             style={styles.input}
-            disabled={state === 'loading'}
+            disabled={busy}
           />
           {domainError && (
+            <p style={styles.errorText} role="alert">{domainError}</p>
+          )}
+          {linkState === 'error' && (
             <p style={styles.errorText} role="alert">
-              {domainError}
+              {linkError || 'Something went wrong. Try again.'}
             </p>
           )}
-          {state === 'error' && (
+        </div>
+
+        {/* ── Password field (secondary path) ── */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <div style={styles.divider}>
+            <span style={styles.dividerText}>or sign in with password</span>
+          </div>
+          <input
+            type="password"
+            autoComplete="current-password"
+            placeholder="Password"
+            value={password}
+            onChange={(e) => { setPassword(e.target.value); setPwError(''); }}
+            style={styles.input}
+            disabled={busy}
+          />
+          {pwState === 'error' && (
             <p style={styles.errorText} role="alert">
-              {errorMsg || 'Something went wrong. Try again.'}
+              {pwError || 'Something went wrong. Try again.'}
             </p>
           )}
-        </form>
+        </div>
       </div>
 
       <div style={styles.bottom}>
+        {/* Primary: magic link */}
         <button
-          type="submit"
-          form="sign-in-form"
+          type="button"
           style={{
             ...styles.btn,
-            opacity: state === 'loading' ? 0.5 : 1,
+            opacity: busy || !email ? 0.5 : 1,
+            marginBottom: 12,
           }}
-          disabled={state === 'loading' || !email}
-          onClick={handleSubmit as unknown as React.MouseEventHandler}
+          disabled={busy || !email}
+          onClick={handleMagicLink}
         >
-          {state === 'loading' ? 'Sending…' : 'Send magic link'}
+          {linkState === 'loading' ? 'Sending…' : 'Send magic link'}
         </button>
+
+        {/* Secondary: password */}
+        <button
+          type="button"
+          style={{
+            ...styles.btn,
+            background: 'var(--surface)',
+            color: 'var(--ink-muted)',
+            opacity: busy || !email || !password ? 0.5 : 1,
+            marginBottom: showDemo ? 12 : 0,
+          }}
+          disabled={busy || !email || !password}
+          onClick={handlePassword}
+        >
+          {pwState === 'loading' ? 'Signing in…' : 'Sign in with password'}
+        </button>
+
+        {/* Demo account — only rendered when env vars are present */}
+        {showDemo && (
+          <>
+            <button
+              type="button"
+              style={{
+                ...styles.btn,
+                background: 'transparent',
+                color: 'var(--ink-muted)',
+                border: '1px solid var(--hairline)',
+                opacity: busy ? 0.5 : 1,
+              }}
+              disabled={busy}
+              onClick={handleDemo}
+            >
+              {demoState === 'loading' ? 'Signing in…' : 'Use demo account'}
+            </button>
+            {demoState === 'error' && (
+              <p style={{ ...styles.errorText, marginTop: 8 }} role="alert">
+                {demoError || 'Demo sign-in failed.'}
+              </p>
+            )}
+          </>
+        )}
       </div>
     </div>
   );
@@ -182,10 +297,21 @@ const styles = {
     outline:      'none',
     fontFamily:   'inherit',
   },
+  divider: {
+    display:    'flex',
+    alignItems: 'center',
+    gap:        12,
+    marginTop:  4,
+  },
+  dividerText: {
+    fontSize:   'var(--text-13)',
+    color:      'var(--ink-muted)',
+    whiteSpace: 'nowrap' as const,
+  },
   errorText: {
-    fontSize:  'var(--text-13)',
-    color:     'var(--busy)',
-    marginTop: 4,
+    fontSize:   'var(--text-13)',
+    color:      'var(--busy)',
+    marginTop:  4,
     lineHeight: 1.4,
   },
   body: {
@@ -196,6 +322,8 @@ const styles = {
   bottom: {
     paddingTop:    24,
     paddingBottom: 8,
+    display:       'flex',
+    flexDirection: 'column' as const,
   },
   btn: {
     width:        '100%',
