@@ -13,9 +13,22 @@ You may create or edit only these paths. If you think you need a file
 outside this list, stop and say why instead of editing it.
 
 - `supabase/migrations/`, `supabase/seed/`
-- `app/(auth)/`
+- `app/(auth)/`, `app/sign-in/`
 - `src/lib/supabase/`, `src/lib/types/db.ts`
 - This folder
+- A one-line additive extension of C0's `AppShell` bypass list, to let
+  `/sign-in` render without the tab bar. Additive only, change nothing else in
+  C0's files.
+
+**Do not create `middleware.ts`.** See the decided-architecture section of
+`PROJECT.md`: auth is client-side only, route protection is a client-side
+guard, and a cookie check in middleware cannot see a localStorage session.
+Do not add `@supabase/ssr`.
+
+**Credentials are required before this checkpoint can be verified.** If
+`.env.local` is missing, stop and say so rather than writing auth you cannot
+test. Unverified auth and unverified RLS are the two worst things to carry into
+C2 and C3, because every failure downstream will look like a logger bug.
 
 **Depends on:** None beyond C0.
 

@@ -34,6 +34,30 @@ Locked at hour zero. Do not propose alternatives.
 - Vercel for deploy
 - PWA, no app store. Installed to the home screen
 
+## Decided architecture, do not re-litigate
+
+**Auth is client-side only. There is no middleware and no server-side
+session.**
+
+Sessions live in the browser via `@supabase/supabase-js` with localStorage.
+Route protection is a client-side guard in a wrapper component that renders a
+resolving state until auth settles, then either the app or a redirect to
+`/sign-in`.
+
+Why, so nobody re-opens it:
+
+- A cookie-presence check in `middleware.ts` cannot see a localStorage session.
+  That combination is incoherent, not a compromise.
+- This app is a client-rendered PWA by necessity. Offline set logging needs
+  IndexedDB and realtime needs a live socket, so almost nothing renders on the
+  server. A server-side session would buy nearly nothing here.
+- `@supabase/ssr` would work but splits the client into server, route-handler
+  and middleware variants. Across two agents handing off mid-build, that is
+  more surface to get wrong than the problem justifies.
+
+Accept the brief resolving state on first paint. That is the cost and it is
+cheap. Do not add `@supabase/ssr`, and do not create `middleware.ts`.
+
 ## Conventions
 
 - Feature folders under `src/features/`, see `AGENTS.md` for the rules
