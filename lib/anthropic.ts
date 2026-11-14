@@ -196,3 +196,75 @@ export async function generateRoutine(
     return null;
   }
 }
+
+/* ── Coach chat ───────────────────────────────────────────────────────────── */
+
+export interface CoachTurn {
+  role: "user" | "assistant";
+  content: string;
+}
+
+export interface AskCoachArgs {
+  question: string;
+  /** Computed brief from lib/coachContext.ts. The only facts available. */
+  context: string;
+  /** Earlier turns, so follow-up questions work. */
+  history: CoachTurn[];
+}
+
+/**
+ * Answers a question about the lifter's own training.
+ *
+ * The model is a reader, not a calculator. Every figure it can cite has
+ * already been computed by the same functions the screens render from, and it
+ * is told to say when the data does not answer the question rather than
+ * reaching for a plausible number. That keeps the chat on the same footing as
+ * the coach cards: nothing on screen is a figure nobody checked.
+ *
+ * Returns null when ANTHROPIC_API_KEY is not set or the call fails. Callers
+ * must always provide their own fallback.
+ */
+export async function askCoach(
+  args: AskCoachArgs,
+  signal?: AbortSignal,
+): Promise<string | null> {
+  const key = process.env.ANTHROPIC_API_KEY;
+  if (!key) return null;
+
+  const system =
+    `You are a strength training coach answering questions about one lifter's ` +
+    `own logged training. You are given their data below. Rules:\n` +
+    `- Use only the figures given. Never invent or estimate a number, and ` +
+    `never do arithmetic that produces a new figure to present as fact.\n` +
+    `- If the data does not answer the question, say so plainly and say what ` +
+    `they would need to log for it to.\n` +
+    `- The progression and deload rules are fixed and are stated below. Do ` +
+    `not contradict them or make up new ones.\n` +
+    `- Never give medical advice. If something sounds like an injury, say it ` +
+    `is worth seeing a professional.\n` +
+    `- Two or three short paragraphs at most. No markdown, no bullet points, ` +
+    `no headings. Talk like a coach in a gym, not a document.\n\n` +
+    args.context;
+
+  const res = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-api-key": key,
+      "anthropic-version": "2023-06-01",
+    },
+    body: JSON.stringify({
+      model: MODEL,
+      max_tokens: 2000,
+      system,
+      messages: [
+        ...args.history.slice(-6).map((t) => ({ role: t.role, content: t.content })),
+        { role: "user", content: args.question },
+      ],
+    }),
+    signal,
+  });
+
+  if (!res.ok) return null;
+  return answerText((await res.json()) as MessagesResponse);
+}
