@@ -9,15 +9,16 @@ import {
   useRef,
   useState,
 } from "react";
-import { buildGymContext, type GymContext } from "./availability";
-import { GYMS, ROUTINES, exerciseById, gymById } from "./catalog";
-import { loadActiveWorkout, loadSets, saveSets, saveWorkout } from "./db";
-import { historyFor } from "./history";
-import type { Routine, SetEntry } from "./types";
+import { buildGymContext, substituteFor, type GymContext } from "./availability";
+import { exerciseById, gymById } from "./catalog";
+import { loadActiveWorkout, loadHistory, loadSets, saveWorkout, saveSets } from "./db";
+import { populateHistory } from "./history";
+import type { OccupancySnapshot } from "./occupancy";
+import { gymOccupancySnapshot } from "./occupancySim";
+import type { Routine, RoutineExercise, SessionSummary, SetEntry } from "./types";
 
 export interface ActiveSet {
   clientId: string;
-  /** Held as strings so a half-typed "1" does not become the number 1. */
   weight: string;
   reps: string;
   done: boolean;
@@ -40,14 +41,15 @@ export interface ActiveSession {
 
 export interface RestTimer {
   open: boolean;
-  /** Seconds. 0 means the custom field is selected. */
   duration: number;
   startedAt: number | null;
 }
 
-const GYM_KEY = "volfit.gym";
-const ONLY_KEY = "volfit.availableOnly";
-const DEFAULT_REST = 90;
+/** Fixed to TRECS — the only gym we support in this release. */
+const FIXED_GYM_ID  = "ut_rec";
+const ROUTINES_KEY  = "volfit.routines";
+const ONLY_KEY      = "volfit.availableOnly";
+const DEFAULT_REST  = 90;
 
 const uid = () =>
   typeof crypto !== "undefined" && "randomUUID" in crypto
@@ -55,37 +57,30 @@ const uid = () =>
     : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
 
 function readLocal(key: string): string | null {
-  try {
-    return window.localStorage.getItem(key);
-  } catch {
-    return null;
-  }
+  try { return window.localStorage.getItem(key); } catch { return null; }
 }
-
 function writeLocal(key: string, value: string): void {
-  try {
-    window.localStorage.setItem(key, value);
-  } catch {
-    // Private mode or a full quota. A lost preference is not worth a crash.
-  }
+  try { window.localStorage.setItem(key, value); } catch { /* quota / private mode */ }
 }
 
 interface StoreValue {
-  gymId: string;
   gym: ReturnType<typeof gymById>;
   gymCtx: GymContext;
-  gyms: typeof GYMS;
-  setGymId: (id: string) => void;
-
   availableOnly: boolean;
   setAvailableOnly: (value: boolean) => void;
 
   routines: Routine[];
+  saveRoutine: (routine: Routine) => void;
+  deleteRoutine: (id: string) => void;
+
+  history: SessionSummary[];
+
   session: ActiveSession | null;
   startEmpty: () => void;
   startRoutine: (routineId: string) => void;
   addExercise: (exerciseId: string) => void;
   removeExercise: (exerciseId: string) => void;
+  swapExercise: (oldId: string, newId: string) => void;
   addSet: (exerciseId: string) => void;
   updateSet: (exerciseId: string, clientId: string, patch: Partial<ActiveSet>) => void;
   toggleSetDone: (exerciseId: string, clientId: string) => void;
@@ -95,33 +90,56 @@ interface StoreValue {
   setRestDuration: (seconds: number) => void;
   closeRest: () => void;
 
-  /** Last session's numbers for that set index, for the PREVIOUS column. */
   previousFor: (exerciseId: string, setIndex: number) => string;
   tonnage: number;
+  occupancy: Map<string, OccupancySnapshot>;
 }
 
 const StoreContext = createContext<StoreValue | null>(null);
 
 export function VolFitProvider({ children }: { children: React.ReactNode }) {
-  const [gymId, setGymIdState] = useState<string>(GYMS[0].id);
+  const gym    = useMemo(() => gymById(FIXED_GYM_ID), []);
+  const gymCtx = useMemo(() => buildGymContext(gym), [gym]);
+
   const [availableOnly, setAvailableOnlyState] = useState(true);
-  const [session, setSession] = useState<ActiveSession | null>(null);
-  const [rest, setRest] = useState<RestTimer>({
-    open: false,
-    duration: DEFAULT_REST,
-    startedAt: null,
+  const [routines, setRoutines]                = useState<Routine[]>([]);
+  const [history,  setHistory]                 = useState<SessionSummary[]>([]);
+  const [session,  setSession]                 = useState<ActiveSession | null>(null);
+  const [rest,     setRest]                    = useState<RestTimer>({
+    open: false, duration: DEFAULT_REST, startedAt: null,
   });
+  const [occupancy, setOccupancy] = useState<Map<string, OccupancySnapshot>>(
+    () => gymOccupancySnapshot(FIXED_GYM_ID, gym?.equipment ?? []),
+  );
   const restored = useRef(false);
 
-  // Restore preferences and any workout left open by a reload or a dead battery.
+  const refreshHistory = useCallback(async () => {
+    const rows = await loadHistory();
+    populateHistory(rows);
+    setHistory(rows);
+  }, []);
+
+  // Refresh occupancy every 5 minutes to pick up the next LCG window.
+  useEffect(() => {
+    const refresh = () =>
+      setOccupancy(gymOccupancySnapshot(FIXED_GYM_ID, gym?.equipment ?? []));
+    const id = window.setInterval(refresh, 5 * 60 * 1000);
+    return () => window.clearInterval(id);
+  }, [gym]);
+
   useEffect(() => {
     if (restored.current) return;
     restored.current = true;
 
-    const storedGym = readLocal(GYM_KEY);
-    if (storedGym && GYMS.some((g) => g.id === storedGym)) setGymIdState(storedGym);
     const storedOnly = readLocal(ONLY_KEY);
     if (storedOnly !== null) setAvailableOnlyState(storedOnly === "true");
+
+    const stored = readLocal(ROUTINES_KEY);
+    if (stored) {
+      try { setRoutines(JSON.parse(stored) as Routine[]); } catch { /* corrupt data */ }
+    }
+
+    void refreshHistory();
 
     void (async () => {
       const open = await loadActiveWorkout();
@@ -132,58 +150,66 @@ export function VolFitProvider({ children }: { children: React.ReactNode }) {
         const list = byExercise.get(row.exerciseId) ?? [];
         list.push({
           clientId: row.clientId,
-          weight: row.weight ? String(row.weight) : "",
-          reps: row.reps ? String(row.reps) : "",
-          done: Boolean(row.doneAt),
+          weight:   row.weight ? String(row.weight) : "",
+          reps:     row.reps   ? String(row.reps)   : "",
+          done:     Boolean(row.doneAt),
         });
         byExercise.set(row.exerciseId, list);
       }
       setSession({
-        id: open.id,
-        name: open.name,
-        gymId: open.gymId,
+        id:        open.id,
+        name:      open.name,
+        gymId:     open.gymId,
         routineId: open.routineId,
         startedAt: open.startedAt,
         exercises: Array.from(byExercise.entries()).map(([exerciseId, sets]) => ({
-          exerciseId,
-          sets,
+          exerciseId, sets,
         })),
       });
     })();
-  }, []);
-
-  const gym = useMemo(() => gymById(gymId), [gymId]);
-  const gymCtx = useMemo(() => buildGymContext(gym), [gym]);
-
-  const setGymId = useCallback((id: string) => {
-    setGymIdState(id);
-    writeLocal(GYM_KEY, id);
-  }, []);
+  }, [refreshHistory]);
 
   const setAvailableOnly = useCallback((value: boolean) => {
     setAvailableOnlyState(value);
     writeLocal(ONLY_KEY, String(value));
   }, []);
 
-  // Persist the session on every change. IndexedDB first, server later.
+  const saveRoutine = useCallback((routine: Routine) => {
+    setRoutines((prev) => {
+      const next = prev.some((r) => r.id === routine.id)
+        ? prev.map((r) => (r.id === routine.id ? routine : r))
+        : [...prev, routine];
+      writeLocal(ROUTINES_KEY, JSON.stringify(next));
+      return next;
+    });
+  }, []);
+
+  const deleteRoutine = useCallback((id: string) => {
+    setRoutines((prev) => {
+      const next = prev.filter((r) => r.id !== id);
+      writeLocal(ROUTINES_KEY, JSON.stringify(next));
+      return next;
+    });
+  }, []);
+
   useEffect(() => {
     if (!session) return;
     void saveWorkout({
-      id: session.id,
-      gymId: session.gymId,
+      id:        session.id,
+      gymId:     session.gymId,
       routineId: session.routineId,
-      name: session.name,
+      name:      session.name,
       startedAt: session.startedAt,
     });
     const rows: SetEntry[] = session.exercises.flatMap((ex) =>
       ex.sets.map((s, index) => ({
-        clientId: s.clientId,
-        workoutId: session.id,
+        clientId:   s.clientId,
+        workoutId:  session.id,
         exerciseId: ex.exerciseId,
-        setIndex: index + 1,
-        weight: Number(s.weight) || 0,
-        reps: Number(s.reps) || 0,
-        doneAt: s.done ? Date.now() : undefined,
+        setIndex:   index + 1,
+        weight:     Number(s.weight) || 0,
+        reps:       Number(s.reps)   || 0,
+        doneAt:     s.done ? Date.now() : undefined,
       })),
     );
     void saveSets(rows);
@@ -196,52 +222,49 @@ export function VolFitProvider({ children }: { children: React.ReactNode }) {
 
   const startEmpty = useCallback(() => {
     setSession({
-      id: uid(),
-      name: "Empty Workout",
-      gymId,
+      id:        uid(),
+      name:      "Workout",
+      gymId:     FIXED_GYM_ID,
       startedAt: Date.now(),
       exercises: [],
     });
-  }, [gymId]);
+  }, []);
 
   const startRoutine = useCallback(
     (routineId: string) => {
-      const routine = ROUTINES.find((r) => r.id === routineId);
+      const routine = routines.find((r) => r.id === routineId);
       if (!routine) return;
       setSession({
-        id: uid(),
-        name: routine.name,
-        gymId,
+        id:        uid(),
+        name:      routine.name,
+        gymId:     FIXED_GYM_ID,
         routineId: routine.id,
         startedAt: Date.now(),
-        // Entries the gym cannot load are left out here; the logger offers the
-        // swap rather than silently substituting behind the user's back.
-        exercises: routine.exercises
-          .filter((entry) => gymCtx.availableIds.has(entry.exerciseId))
-          .map((entry) => ({
-            exerciseId: entry.exerciseId,
-            targetReps: entry.repHigh,
-            sets: Array.from({ length: entry.targetSets }, () =>
-              blankSet(entry.targetWeight ? String(entry.targetWeight) : "", ""),
-            ),
-          })),
+        // Keep ALL exercises — unavailable ones show a swap prompt in workout page.
+        exercises: routine.exercises.map((entry) => ({
+          exerciseId: entry.exerciseId,
+          targetReps: entry.repHigh,
+          sets: Array.from({ length: entry.targetSets }, () =>
+            blankSet(entry.targetWeight ? String(entry.targetWeight) : "", ""),
+          ),
+        })),
       });
     },
-    [blankSet, gymCtx, gymId],
+    [blankSet, routines],
   );
 
   const ensureSession = useCallback((): ActiveSession => {
     if (session) return session;
     const fresh: ActiveSession = {
-      id: uid(),
-      name: "Empty Workout",
-      gymId,
+      id:        uid(),
+      name:      "Workout",
+      gymId:     FIXED_GYM_ID,
       startedAt: Date.now(),
       exercises: [],
     };
     setSession(fresh);
     return fresh;
-  }, [gymId, session]);
+  }, [session]);
 
   const addExercise = useCallback(
     (exerciseId: string) => {
@@ -261,6 +284,22 @@ export function VolFitProvider({ children }: { children: React.ReactNode }) {
     );
   }, []);
 
+  const swapExercise = useCallback((oldId: string, newId: string) => {
+    setSession((prev) => {
+      if (!prev) return prev;
+      if (prev.exercises.some((e) => e.exerciseId === newId)) {
+        // New exercise already in session — just drop the old one.
+        return { ...prev, exercises: prev.exercises.filter((e) => e.exerciseId !== oldId) };
+      }
+      return {
+        ...prev,
+        exercises: prev.exercises.map((ex) =>
+          ex.exerciseId === oldId ? { ...ex, exerciseId: newId } : ex,
+        ),
+      };
+    });
+  }, []);
+
   const addSet = useCallback(
     (exerciseId: string) => {
       setSession((prev) => {
@@ -270,8 +309,6 @@ export function VolFitProvider({ children }: { children: React.ReactNode }) {
           exercises: prev.exercises.map((ex) => {
             if (ex.exerciseId !== exerciseId) return ex;
             const last = ex.sets[ex.sets.length - 1];
-            // A new set inherits the previous load, which is what you want
-            // nine times out of ten and saves two taps.
             return { ...ex, sets: [...ex.sets, blankSet(last?.weight ?? "", "")] };
           }),
         };
@@ -288,10 +325,7 @@ export function VolFitProvider({ children }: { children: React.ReactNode }) {
           ...prev,
           exercises: prev.exercises.map((ex) =>
             ex.exerciseId === exerciseId
-              ? {
-                  ...ex,
-                  sets: ex.sets.map((s) => (s.clientId === clientId ? { ...s, ...patch } : s)),
-                }
+              ? { ...ex, sets: ex.sets.map((s) => (s.clientId === clientId ? { ...s, ...patch } : s)) }
               : ex,
           ),
         };
@@ -321,7 +355,6 @@ export function VolFitProvider({ children }: { children: React.ReactNode }) {
           ),
         };
       });
-      // Completing a set starts the rest clock. Unchecking a set does not.
       setRest((prev) =>
         nowDone ? { ...prev, open: true, startedAt: Date.now() } : prev,
       );
@@ -331,18 +364,20 @@ export function VolFitProvider({ children }: { children: React.ReactNode }) {
 
   const finish = useCallback(() => {
     setSession((prev) => {
-      if (prev) void saveWorkout({
-        id: prev.id,
-        gymId: prev.gymId,
-        routineId: prev.routineId,
-        name: prev.name,
-        startedAt: prev.startedAt,
-        endedAt: Date.now(),
-      });
+      if (prev)
+        void saveWorkout({
+          id:        prev.id,
+          gymId:     prev.gymId,
+          routineId: prev.routineId,
+          name:      prev.name,
+          startedAt: prev.startedAt,
+          endedAt:   Date.now(),
+        });
       return null;
     });
     setRest({ open: false, duration: DEFAULT_REST, startedAt: null });
-  }, []);
+    void refreshHistory();
+  }, [refreshHistory]);
 
   const setRestDuration = useCallback((seconds: number) => {
     setRest((prev) => ({ ...prev, duration: seconds, startedAt: Date.now() }));
@@ -352,21 +387,25 @@ export function VolFitProvider({ children }: { children: React.ReactNode }) {
     setRest((prev) => ({ ...prev, open: false, startedAt: null }));
   }, []);
 
-  const previousFor = useCallback((exerciseId: string, setIndex: number) => {
-    const history = historyFor(exerciseId);
-    const last = history[0];
-    const set = last?.sets[setIndex - 1];
-    if (!set) return "—";
-    const unit = exerciseById(exerciseId)?.equipment === "bodyweight" || set.weight === 0;
-    return unit ? `BW × ${set.reps}` : `${set.weight} × ${set.reps}`;
-  }, []);
+  const previousFor = useCallback(
+    (exerciseId: string, setIndex: number) => {
+      const sessions = history
+        .filter((s) => s.exerciseId === exerciseId)
+        .sort((a, b) => b.performedAt - a.performedAt);
+      const last = sessions[0];
+      const set  = last?.sets[setIndex - 1];
+      if (!set) return "—";
+      const bw = exerciseById(exerciseId)?.equipment === "bodyweight" || set.weight === 0;
+      return bw ? `BW × ${set.reps}` : `${set.weight} × ${set.reps}`;
+    },
+    [history],
+  );
 
   const tonnage = useMemo(() => {
     if (!session) return 0;
     return session.exercises.reduce(
       (sum, ex) =>
-        sum +
-        ex.sets.reduce(
+        sum + ex.sets.reduce(
           (inner, s) => inner + (s.done ? (Number(s.weight) || 0) * (Number(s.reps) || 0) : 0),
           0,
         ),
@@ -374,29 +413,25 @@ export function VolFitProvider({ children }: { children: React.ReactNode }) {
     );
   }, [session]);
 
+  // Expose substituteFor bound to current gymCtx so pages don't import availability directly.
+  const boundSubstituteFor = useCallback(
+    (exercise: Parameters<typeof substituteFor>[0]) => substituteFor(exercise, gymCtx),
+    [gymCtx],
+  );
+
   const value: StoreValue = {
-    gymId,
-    gym,
-    gymCtx,
-    gyms: GYMS,
-    setGymId,
-    availableOnly,
-    setAvailableOnly,
-    routines: ROUTINES,
-    session,
-    startEmpty,
-    startRoutine,
-    addExercise,
-    removeExercise,
-    addSet,
-    updateSet,
-    toggleSetDone,
-    finish,
-    rest,
-    setRestDuration,
-    closeRest,
-    previousFor,
-    tonnage,
+    gym, gymCtx,
+    availableOnly, setAvailableOnly,
+    routines, saveRoutine, deleteRoutine,
+    history,
+    session, startEmpty, startRoutine,
+    addExercise, removeExercise, swapExercise,
+    addSet, updateSet, toggleSetDone, finish,
+    rest, setRestDuration, closeRest,
+    previousFor, tonnage,
+    occupancy,
+    // @ts-expect-error extra field used by workout page
+    substituteFor: boundSubstituteFor,
   };
 
   return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>;
@@ -408,11 +443,6 @@ export function useStore(): StoreValue {
   return value;
 }
 
-/**
- * Seconds elapsed since a timestamp, recomputed on a one-second tick.
- * Derived from the stored start time rather than accumulated ticks, so a
- * backgrounded tab or a locked phone cannot drift.
- */
 export function useElapsed(since: number | null): number {
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
@@ -429,3 +459,5 @@ export function formatClock(totalSeconds: number): string {
   const s = totalSeconds % 60;
   return `${m}:${String(s).padStart(2, "0")}`;
 }
+
+export type { RoutineExercise };
