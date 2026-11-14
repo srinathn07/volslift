@@ -6,6 +6,27 @@
  */
 const MODEL = "claude-haiku-5-5";
 
+interface MessagesResponse {
+  content?: Array<{ type?: string; text?: string }>;
+}
+
+/**
+ * Pulls the answer out of a messages response.
+ *
+ * The response can carry more than one content block, and a thinking block
+ * comes first when the model produces one. Reading content[0] therefore picks
+ * up a block with no `text` and the call looks like a failure, which is how
+ * both of these features ended up silently falling back. Take the first block
+ * that is actually text, and strip a code fence if one slipped through.
+ */
+function answerText(data: MessagesResponse): string | null {
+  const block = data.content?.find((c) => c.type === "text" && typeof c.text === "string");
+  const raw = block?.text?.trim();
+  if (!raw) return null;
+  const fenced = raw.match(/^```(?:json)?\s*([\s\S]*?)\s*```$/);
+  return (fenced ? fenced[1] : raw).trim() || null;
+}
+
 export interface SwapArgs {
   /** IDs the model is allowed to pick from — it must not invent new IDs. */
   candidateIds: string[];
@@ -40,7 +61,12 @@ export async function fetchSwapRecommendation(
   const prompt =
     `You are helping a gym-goer find an exercise swap during their workout "${args.sessionName}". ` +
     `They were about to do ${args.exerciseName} but the equipment is busy. ` +
-    `Choose the best replacement from this list: ${args.candidateIds.join(", ")}. ` +
+    `These replacements are already ranked best first by the scoring engine, ` +
+    `which weighs movement pattern, primary muscle and how heavily the lift ` +
+    `can be loaded: ${args.candidateIds.join(", ")}. ` +
+    `Keep the first one unless a later one is clearly a better fit for this ` +
+    `specific moment, and never trade down to a lighter lift just because it ` +
+    `is simpler. ` +
     `Respond with valid JSON only — no markdown, no code fences: ` +
     `{"chosenId":"<one of the given IDs>","sentence":"<one plain sentence, no weights or reps>"}`;
 
@@ -53,7 +79,10 @@ export async function fetchSwapRecommendation(
     },
     body: JSON.stringify({
       model: MODEL,
-      max_tokens: 150,
+      // A thinking block is emitted before the answer and is billed against
+      // this budget, so a tight limit truncates the JSON and the call reads as
+      // a failure. 150 was never enough for the thinking block alone.
+      max_tokens: 1500,
       messages: [{ role: "user", content: prompt }],
     }),
     signal,
@@ -61,8 +90,7 @@ export async function fetchSwapRecommendation(
 
   if (!res.ok) return null;
 
-  const data = (await res.json()) as { content?: Array<{ text?: string }> };
-  const text = data.content?.[0]?.text?.trim();
+  const text = answerText((await res.json()) as MessagesResponse);
   if (!text) return null;
 
   try {
@@ -148,7 +176,9 @@ export async function generateRoutine(
     },
     body: JSON.stringify({
       model: MODEL,
-      max_tokens: 2000,
+      // Thinking plus four days of JSON. Measured at ~1k output tokens for a
+      // single day, and the response is useless if it stops mid-object.
+      max_tokens: 8000,
       messages: [{ role: "user", content: prompt }],
     }),
     signal,
@@ -156,8 +186,7 @@ export async function generateRoutine(
 
   if (!res.ok) return null;
 
-  const data = (await res.json()) as { content?: Array<{ text?: string }> };
-  const text = data.content?.[0]?.text?.trim();
+  const text = answerText((await res.json()) as MessagesResponse);
   if (!text) return null;
 
   try {

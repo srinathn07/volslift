@@ -31,7 +31,12 @@ export async function POST(req: NextRequest): Promise<NextResponse<ResponseBody>
   if (candidateIds.length === 0) return NextResponse.json(fallback);
 
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 1200);
+  // The card renders the deterministic evidence straight away and replaces it
+  // if a model sentence arrives, so waiting costs the user nothing on screen.
+  // 1200 ms could never be met: the model emits a thinking block first and a
+  // call measures around five seconds, so this always timed out and the
+  // feature silently ran on the fallback.
+  const timeout = setTimeout(() => controller.abort(), 8000);
 
   try {
     const result = await fetchSwapRecommendation(
