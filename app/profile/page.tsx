@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Body, Screen, SectionLabel } from "@/components/Shell";
 import { IconPin, IconSliders, IconUser } from "@/components/Icons";
 import { clearAll } from "@/lib/db";
@@ -16,13 +16,20 @@ export default function ProfilePage() {
   const [password, setPassword]   = useState("");
   const [authError, setAuthError] = useState<string | null>(null);
   const [authLoading, setAuthLoading] = useState(false);
+  const emailRef    = useRef<HTMLInputElement>(null);
+  const passwordRef = useRef<HTMLInputElement>(null);
 
   const handleAuth = async () => {
+    // Read from DOM refs so the button works even when browser-automation tools
+    // set input values without triggering React's synthetic onChange.
+    const actualEmail    = emailRef.current?.value    ?? email;
+    const actualPassword = passwordRef.current?.value ?? password;
+    if (!actualEmail || !actualPassword) return;
     setAuthError(null);
     setAuthLoading(true);
     const err = mode === "signin"
-      ? await signIn(email, password)
-      : await signUp(email, password);
+      ? await signIn(actualEmail, actualPassword)
+      : await signUp(actualEmail, actualPassword);
     setAuthLoading(false);
     if (err) setAuthError(err);
     else { setEmail(""); setPassword(""); }
@@ -137,6 +144,7 @@ export default function ProfilePage() {
             </div>
 
             <input
+              ref={emailRef}
               type="email"
               placeholder="Email"
               value={email}
@@ -155,6 +163,7 @@ export default function ProfilePage() {
               }}
             />
             <input
+              ref={passwordRef}
               type="password"
               placeholder="Password"
               value={password}
@@ -179,16 +188,16 @@ export default function ProfilePage() {
             <button
               type="button"
               onClick={() => void handleAuth()}
-              disabled={authLoading || !email || !password}
+              disabled={authLoading}
               style={{
                 height: 46,
                 borderRadius: 11,
-                background: authLoading || !email || !password ? t.surface2 : t.accent,
+                background: authLoading ? t.surface2 : t.accent,
                 border: "none",
                 fontFamily: font.display,
                 fontWeight: 700,
                 fontSize: 15,
-                color: authLoading || !email || !password ? t.textFaint : t.bg,
+                color: authLoading ? t.textFaint : t.bg,
               }}
             >
               {authLoading
