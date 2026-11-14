@@ -59,7 +59,18 @@ export function gymOccupancySnapshot(
   for (const equipmentId of equipmentIds) {
     const total = randomTotal(rand);
     const random = Math.floor(rand() * (total + 1));
-    const inUse = busyRush && QUEUED_EQUIPMENT.includes(equipmentId) ? total : random;
+
+    // In a rush the queued stations fill completely and everything else fills
+    // most of the way. Filling only the racks left the gym reading as merely
+    // "filling up" overall, which is the wrong thing to say when every barbell
+    // is taken; a rush is busy everywhere, it just queues at the racks first.
+    let inUse = random;
+    if (busyRush) {
+      inUse = QUEUED_EQUIPMENT.includes(equipmentId)
+        ? total
+        : Math.max(random, Math.ceil(total * 0.75));
+    }
+
     result.set(equipmentId, { equipmentId, total, inUse, updatedAt });
   }
   return result;

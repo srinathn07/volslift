@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { busyLevel, estimatedWaitMinutes, shouldOfferSwap, waitLabel } from "./occupancy";
+import { busyLevel, estimatedWaitMinutes, gymBusyness, shouldOfferSwap, waitLabel } from "./occupancy";
 import type { OccupancySnapshot } from "./occupancy";
 
 function snap(total: number, inUse: number): OccupancySnapshot {
@@ -94,5 +94,27 @@ describe("waitLabel", () => {
   it("gives a figure only when there is a real queue", () => {
     expect(waitLabel(snap(4, 4))).toBe(`about ${estimatedWaitMinutes(snap(4, 4))} min wait`);
     expect(waitLabel(snap(1, 1))).toMatch(/^about \d+ min wait$/);
+  });
+});
+
+describe("gymBusyness", () => {
+  it("pools bodies against capacity rather than averaging ratios", () => {
+    // One full rack and eight free dumbbell stations is not a half-full gym.
+    const g = gymBusyness([snap(1, 1), snap(8, 0)]);
+    expect(g.inUse).toBe(1);
+    expect(g.total).toBe(9);
+    expect(g.level).toBe("free");
+  });
+
+  it("uses the same thresholds as a single station", () => {
+    expect(gymBusyness([snap(10, 2)]).level).toBe("free");
+    expect(gymBusyness([snap(10, 5)]).level).toBe("moderate");
+    expect(gymBusyness([snap(10, 8)]).level).toBe("busy");
+  });
+
+  it("handles an empty gym without dividing by zero", () => {
+    const g = gymBusyness([]);
+    expect(g.ratio).toBe(0);
+    expect(g.level).toBe("free");
   });
 });

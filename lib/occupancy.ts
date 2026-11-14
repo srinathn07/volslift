@@ -67,3 +67,35 @@ export function shouldOfferSwap(s: OccupancySnapshot, plannedRestSeconds: number
   if (busyLevel(s) !== "busy") return false;
   return estimatedWaitMinutes(s) > plannedRestSeconds / 60;
 }
+
+export interface GymBusyness {
+  inUse: number;
+  total: number;
+  /** 0 to 1 across every station in the gym. */
+  ratio: number;
+  level: BusyLevel;
+}
+
+/**
+ * How full the gym is overall, pooled across every station.
+ *
+ * Deliberately pooled rather than averaged per station: a gym with one busy
+ * squat rack and eight free dumbbells is not half full, and averaging ratios
+ * would say it was. Counting bodies against capacity matches what you see
+ * walking in.
+ *
+ * The level uses the same thresholds as a single station, so the ring on the
+ * home screen and the meter on a lift cannot disagree about what "busy" means.
+ */
+export function gymBusyness(snaps: Iterable<OccupancySnapshot>): GymBusyness {
+  let inUse = 0;
+  let total = 0;
+  for (const s of snaps) {
+    inUse += s.inUse;
+    total += s.total;
+  }
+  if (total === 0) return { inUse: 0, total: 0, ratio: 0, level: "free" };
+  const ratio = inUse / total;
+  const level: BusyLevel = ratio >= 0.8 ? "busy" : ratio >= 0.5 ? "moderate" : "free";
+  return { inUse, total, ratio, level };
+}

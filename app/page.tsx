@@ -14,6 +14,7 @@ import {
   IconTrend,
   IconTrophy,
 } from "@/components/Icons";
+import { gymBusyness } from "@/lib/occupancy";
 import { chainDays, formatVolume, relativeDay, weekStats } from "@/lib/stats";
 import { useStore } from "@/lib/store";
 import { font, t } from "@/lib/tokens";
@@ -57,6 +58,7 @@ export default function HomePage() {
           <span style={{ fontFamily: font.display, fontWeight: 700, fontSize: 21, letterSpacing: "-0.01em" }}>
             Vol<span style={{ color: t.accent }}>Fit</span>
           </span>
+          <CrowdRing />
         </div>
 
         {/* Greeting + streak */}
@@ -215,5 +217,103 @@ function StatTile({ icon, value, label }: { icon: React.ReactNode; value: string
       <span style={{ fontFamily: font.mono, fontWeight: 700, fontSize: 16 }}>{value}</span>
       <span style={{ fontSize: 10.5, color: t.textDim, lineHeight: 1.2, whiteSpace: "pre-line" }}>{label}</span>
     </div>
+  );
+}
+
+/**
+ * How busy the gym is right now, as a ring.
+ *
+ * The arc is the share of stations in use, pooled across the gym. It reads at
+ * a glance from across a room, which is the point: the question it answers is
+ * "is it worth walking over", asked before you leave the house, so a number
+ * you have to stop and parse would be the wrong shape for it.
+ *
+ * Tapping goes to the gym screen, where the same occupancy is broken down by
+ * station.
+ */
+function CrowdRing() {
+  const { gym, occupancy } = useStore();
+  const busy = gymBusyness(occupancy.values());
+
+  const SIZE = 42;
+  const STROKE = 4;
+  const r = (SIZE - STROKE) / 2;
+  const circumference = 2 * Math.PI * r;
+  const tint =
+    busy.level === "busy" ? t.warning : busy.level === "moderate" ? t.accent : t.success;
+  const pct = Math.round(busy.ratio * 100);
+  const word =
+    busy.level === "busy" ? "busy" : busy.level === "moderate" ? "filling up" : "quiet";
+
+  return (
+    <Link
+      href="/gym"
+      aria-label={`${gym.name} is ${word}, ${busy.inUse} of ${busy.total} stations in use`}
+      style={{
+        marginLeft: "auto",
+        flexShrink: 0,
+        display: "flex",
+        alignItems: "center",
+        gap: 8,
+        textDecoration: "none",
+      }}
+    >
+      <span
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "flex-end",
+          gap: 1,
+        }}
+      >
+        <span style={{ fontSize: 12, fontWeight: 600, color: tint, lineHeight: 1 }}>
+          {word}
+        </span>
+        <span style={{ fontFamily: font.mono, fontSize: 10, color: t.textFaint, lineHeight: 1 }}>
+          {busy.inUse}/{busy.total} in use
+        </span>
+      </span>
+
+      <span style={{ position: "relative", width: SIZE, height: SIZE, flexShrink: 0 }}>
+        <svg width={SIZE} height={SIZE} aria-hidden focusable="false">
+          <circle
+            cx={SIZE / 2}
+            cy={SIZE / 2}
+            r={r}
+            fill="none"
+            stroke={t.borderSoft}
+            strokeWidth={STROKE}
+          />
+          <circle
+            cx={SIZE / 2}
+            cy={SIZE / 2}
+            r={r}
+            fill="none"
+            stroke={tint}
+            strokeWidth={STROKE}
+            strokeLinecap="round"
+            strokeDasharray={circumference}
+            strokeDashoffset={circumference * (1 - busy.ratio)}
+            transform={`rotate(-90 ${SIZE / 2} ${SIZE / 2})`}
+            style={{ transition: "stroke-dashoffset 300ms ease" }}
+          />
+        </svg>
+        <span
+          style={{
+            position: "absolute",
+            inset: 0,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            fontFamily: font.mono,
+            fontSize: 11,
+            fontWeight: 700,
+            color: t.text,
+          }}
+        >
+          {pct}
+        </span>
+      </span>
+    </Link>
   );
 }
