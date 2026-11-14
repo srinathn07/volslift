@@ -11,8 +11,8 @@ import {
 } from "react";
 import { buildGymContext, substituteFor, type GymContext } from "./availability";
 import { exerciseById, gymById } from "./catalog";
-import { loadActiveWorkout, loadHistory, loadSets, saveWorkout, saveSets } from "./db";
-import { populateHistory } from "./history";
+import { loadActiveWorkout, loadSets, saveWorkout, saveSets } from "./db";
+import { SEED_HISTORY } from "./history";
 import type { OccupancySnapshot } from "./occupancy";
 import { gymOccupancySnapshot } from "./occupancySim";
 import type { Routine, RoutineExercise, SessionSummary, SetEntry } from "./types";
@@ -113,10 +113,15 @@ export function VolFitProvider({ children }: { children: React.ReactNode }) {
   );
   const restored = useRef(false);
 
+  /**
+   * History comes from the seed until sync exists. The seed cases are
+   * hand-built so the progression and deload rules have something true to
+   * fire on; deriving history from logged sets instead would need a rep
+   * target per session, which SetEntry does not carry, and a guessed target
+   * would make progression fire on every session. Revisit with sync.
+   */
   const refreshHistory = useCallback(async () => {
-    const rows = await loadHistory();
-    populateHistory(rows);
-    setHistory(rows);
+    setHistory(SEED_HISTORY);
   }, []);
 
   // Refresh occupancy every 5 minutes to pick up the next LCG window.
