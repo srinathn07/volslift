@@ -1,0 +1,238 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>VolFit — Progress</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&amp;family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:'Inter',system-ui,sans-serif;color:#F4F5F6}
+a{color:#F4F5F6;text-decoration:none}a:hover{color:#FF5A3C}
+</style>
+</helmet>
+
+<div style="width:390px;height:844px;box-sizing:border-box;background:#0A0C0E;display:flex;flex-direction:column;overflow:hidden">
+
+  <div style="flex:1 1 auto;overflow-y:auto;padding:52px 16px 24px 16px;display:flex;flex-direction:column;gap:18px">
+
+    <!-- Header -->
+    <div style="display:flex;align-items:center;justify-content:space-between">
+      <h1 style="margin:0;font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:23px;color:#F4F5F6">Progress</h1>
+      <button type="button" style="height:34px;padding:0 13px;border-radius:10px;background:#15181C;border:1px solid #262B30;color:#C7CCD1;font-size:12.5px;font-weight:600;display:flex;align-items:center;gap:6px">
+        3 months
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#8B939B" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <polyline points="6 9 12 15 18 9"></polyline>
+        </svg>
+      </button>
+    </div>
+
+    <!-- Strength chart -->
+    <div style="background:#15181C;border:1px solid #262B30;border-radius:16px;padding:15px 14px 13px 14px;display:flex;flex-direction:column;gap:12px">
+      <div style="display:flex;gap:7px;overflow-x:auto;padding-bottom:2px">
+        <sc-for list="{{exChips}}" as="c" hint-placeholder-count="4">
+          <button type="button" onClick="{{c.pick}}" style="{{c.style}}">{{c.label}}</button>
+        </sc-for>
+      </div>
+
+      <div style="display:flex;align-items:flex-end;gap:10px">
+        <div style="display:flex;flex-direction:column;gap:2px">
+          <span style="font-size:11px;font-weight:600;letter-spacing:0.06em;color:#8B939B">EST. 1RM</span>
+          <span style="font-family:'JetBrains Mono',monospace;font-weight:700;font-size:28px;color:#F4F5F6">{{oneRm}}</span>
+        </div>
+        <span style="font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:600;color:#35D28A;padding-bottom:5px">{{delta}}</span>
+      </div>
+
+      <svg viewBox="0 0 320 120" width="100%" height="120" role="img" aria-label="{{chartAlt}}">
+        <line x1="0" y1="104" x2="320" y2="104" stroke="#2E343A" stroke-width="1"></line>
+        <line x1="0" y1="70" x2="320" y2="70" stroke="#232930" stroke-width="1" stroke-dasharray="3 5"></line>
+        <line x1="0" y1="36" x2="320" y2="36" stroke="#232930" stroke-width="1" stroke-dasharray="3 5"></line>
+        <polyline points="{{points}}" fill="none" stroke="#FF5A3C" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"></polyline>
+        <circle cx="306" cy="{{lastY}}" r="5" fill="#FF5A3C"></circle>
+      </svg>
+
+      <div style="display:flex;justify-content:space-between">
+        <span style="font-family:'JetBrains Mono',monospace;font-size:10.5px;color:#6A7178">Aug</span>
+        <span style="font-family:'JetBrains Mono',monospace;font-size:10.5px;color:#6A7178">Sep</span>
+        <span style="font-family:'JetBrains Mono',monospace;font-size:10.5px;color:#6A7178">Oct</span>
+        <span style="font-family:'JetBrains Mono',monospace;font-size:10.5px;color:#6A7178">Nov</span>
+      </div>
+    </div>
+
+    <!-- Consistency heatmap -->
+    <div style="background:#15181C;border:1px solid #262B30;border-radius:16px;padding:15px 14px;display:flex;flex-direction:column;gap:12px">
+      <div style="display:flex;align-items:baseline;justify-content:space-between">
+        <span style="font-size:13.5px;font-weight:600;color:#F4F5F6">Consistency</span>
+        <span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#8B939B">47 sessions · 16 weeks</span>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(16,minmax(0,1fr));gap:4px" role="img" aria-label="Workout consistency heatmap: 47 sessions logged across the last 16 weeks, four to five per week recently">
+        <sc-for list="{{cells}}" as="d" hint-placeholder-count="112">
+          <span style="{{d.style}}"></span>
+        </sc-for>
+      </div>
+      <div style="display:flex;align-items:center;gap:7px">
+        <span style="font-size:10.5px;color:#6A7178">Less</span>
+        <span style="width:11px;height:11px;border-radius:3px;background:#1D2227"></span>
+        <span style="width:11px;height:11px;border-radius:3px;background:#5A2A1F"></span>
+        <span style="width:11px;height:11px;border-radius:3px;background:#A33D26"></span>
+        <span style="width:11px;height:11px;border-radius:3px;background:#FF5A3C"></span>
+        <span style="font-size:10.5px;color:#6A7178">More</span>
+      </div>
+    </div>
+
+    <!-- Body weight -->
+    <div style="background:#15181C;border:1px solid #262B30;border-radius:16px;padding:15px 14px;display:flex;align-items:center;gap:14px">
+      <div style="display:flex;flex-direction:column;gap:2px;flex-shrink:0">
+        <span style="font-size:11px;font-weight:600;letter-spacing:0.06em;color:#8B939B">BODY WEIGHT</span>
+        <span style="font-family:'JetBrains Mono',monospace;font-weight:700;font-size:21px;color:#F4F5F6">176.4</span>
+        <span style="font-family:'JetBrains Mono',monospace;font-size:11.5px;color:#35D28A">+2.1 lb / 8 wk</span>
+      </div>
+      <svg viewBox="0 0 160 52" width="100%" height="52" role="img" aria-label="Body weight trending gradually up over eight weeks" style="flex:1;min-width:0">
+        <polyline points="4,40 26,37 48,38 70,30 92,28 114,24 136,18 156,14" fill="none" stroke="#4A90FF" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"></polyline>
+      </svg>
+      <button type="button" aria-label="Log body weight" style="width:38px;height:38px;border-radius:11px;background:#1C2024;border:1px solid #2A2F35;display:flex;align-items:center;justify-content:center;flex-shrink:0;padding:0">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#FF5A3C" stroke-width="2.4" stroke-linecap="round" aria-hidden="true">
+          <line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line>
+        </svg>
+      </button>
+    </div>
+
+    <!-- Personal records -->
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <div style="display:flex;align-items:baseline;justify-content:space-between">
+        <h2 style="margin:0;font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:16px;color:#F4F5F6">Personal Records</h2>
+        <span style="font-size:12px;color:#8B939B">2 this week</span>
+      </div>
+      <sc-for list="{{prs}}" as="p" hint-placeholder-count="4">
+        <div style="display:flex;align-items:center;gap:12px;background:#15181C;border:1px solid #262B30;border-radius:14px;padding:12px 13px">
+          <div style="{{p.badgeStyle}}">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="{{p.badgeIcon}}" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M8 4h8v4a4 4 0 01-8 0V4z"></path><path d="M8 5H5a3 3 0 003 3"></path><path d="M16 5h3a3 3 0 01-3 3"></path><path d="M12 12v4"></path><path d="M9 20h6"></path>
+            </svg>
+          </div>
+          <div style="display:flex;flex-direction:column;flex:1;min-width:0;gap:2px">
+            <span style="font-size:14px;font-weight:600;color:#F4F5F6">{{p.name}}</span>
+            <span style="font-size:11.5px;color:#8B939B">{{p.when}}</span>
+          </div>
+          <div style="display:flex;flex-direction:column;align-items:flex-end;gap:2px;flex-shrink:0">
+            <span style="font-family:'JetBrains Mono',monospace;font-weight:700;font-size:14.5px;color:#F4F5F6">{{p.value}}</span>
+            <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#35D28A">{{p.gain}}</span>
+          </div>
+        </div>
+      </sc-for>
+    </div>
+
+  </div>
+
+  <!-- Bottom tab bar -->
+  <div style="flex-shrink:0;display:flex;align-items:center;justify-content:space-around;height:78px;background:#0E1013;border-top:1px solid #1E2227;padding-bottom:10px">
+    <a href="Main.dc.html" style="display:flex;flex-direction:column;align-items:center;gap:3px;padding:6px 10px">
+      <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="#6A7178" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M3 11l9-8 9 8"></path><path d="M5 10v10h14V10"></path>
+      </svg>
+      <span style="font-size:10.5px;color:#6A7178">Home</span>
+    </a>
+    <button type="button" aria-label="History" style="background:none;border:none;display:flex;flex-direction:column;align-items:center;gap:3px;padding:6px 10px">
+      <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="#6A7178" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path>
+      </svg>
+      <span style="font-size:10.5px;color:#6A7178">History</span>
+    </button>
+    <a href="Library.dc.html" style="display:flex;flex-direction:column;align-items:center;gap:3px;padding:6px 10px">
+      <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="#6A7178" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M4 9v6"></path><path d="M2 8v8"></path><path d="M6 10v4"></path><path d="M18 10v4"></path><path d="M22 8v8"></path><path d="M20 9v6"></path><path d="M8 12h8"></path>
+      </svg>
+      <span style="font-size:10.5px;color:#6A7178">Exercises</span>
+    </a>
+    <button type="button" aria-label="Progress" aria-current="page" style="background:none;border:none;display:flex;flex-direction:column;align-items:center;gap:3px;padding:6px 10px">
+      <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="#FF5A3C" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <polyline points="3 17 9 11 13 15 21 7"></polyline><polyline points="15 7 21 7 21 13"></polyline>
+      </svg>
+      <span style="font-size:10.5px;font-weight:600;color:#FF5A3C">Progress</span>
+    </button>
+    <button type="button" aria-label="Profile" style="background:none;border:none;display:flex;flex-direction:column;align-items:center;gap:3px;padding:6px 10px">
+      <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="#6A7178" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <circle cx="12" cy="8" r="4"></circle><path d="M4 21c0-4 4-6 8-6s8 2 8 6"></path>
+      </svg>
+      <span style="font-size:10.5px;color:#6A7178">Profile</span>
+    </button>
+  </div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { ex: 'Bench Press' };
+  }
+
+  renderVals() {
+    var self = this;
+    var data = {
+      'Bench Press': { oneRm: '221 lb', delta: '+18 lb', series: [62, 70, 66, 54, 48, 44, 34, 26] },
+      'Back Squat': { oneRm: '286 lb', delta: '+24 lb', series: [78, 74, 64, 60, 52, 46, 38, 22] },
+      'Deadlift': { oneRm: '341 lb', delta: '+12 lb', series: [58, 60, 52, 50, 42, 40, 32, 30] },
+      'Overhead Press': { oneRm: '137 lb', delta: '+7 lb', series: [66, 68, 60, 58, 56, 48, 44, 40] }
+    };
+    var names = ['Bench Press', 'Back Squat', 'Deadlift', 'Overhead Press'];
+
+    var exChips = names.map(function (n) {
+      var sel = self.state.ex === n;
+      return {
+        label: n,
+        style: 'flex-shrink:0;height:32px;padding:0 13px;border-radius:16px;border:1px solid ' +
+          (sel ? '#FF5A3C' : '#2E343A') + ';background:' +
+          (sel ? 'rgba(255,90,60,0.14)' : '#1C2024') + ';color:' +
+          (sel ? '#FF8F79' : '#C7CCD1') + ';font-size:12.5px;font-weight:600',
+        pick: function () { self.setState({ ex: n }); }
+      };
+    });
+
+    var d = data[this.state.ex];
+    var pts = d.series.map(function (y, i) { return (6 + i * 42.9).toFixed(0) + ',' + y; }).join(' ');
+
+    var cells = [];
+    var pattern = [0, 2, 3, 0, 2, 1, 0, 3, 0, 2, 3, 0, 1, 2, 0, 3];
+    for (var i = 0; i < 112; i++) {
+      var lvl = (i % 7 === 6 || i % 11 === 3) ? 0 : pattern[(i * 5 + i % 13) % 16];
+      var bg = ['#1D2227', '#5A2A1F', '#A33D26', '#FF5A3C'][lvl];
+      cells.push({ style: 'width:100%;aspect-ratio:1;border-radius:3px;background:' + bg });
+    }
+
+    var prs = [
+      { name: 'Bench Press', when: 'Nov 12 · 190 lb × 6', value: '221', gain: '+8 lb 1RM', hot: true },
+      { name: 'Pull-Up', when: 'Nov 10 · BW × 11', value: '11', gain: '+2 reps', hot: true },
+      { name: 'Back Squat', when: 'Nov 5 · 245 lb × 5', value: '276', gain: '+11 lb 1RM', hot: false },
+      { name: 'Romanian Deadlift', when: 'Oct 29 · 205 lb × 8', value: '256', gain: '+6 lb 1RM', hot: false }
+    ].map(function (p) {
+      return {
+        name: p.name,
+        when: p.when,
+        value: p.value,
+        gain: p.gain,
+        badgeStyle: 'width:36px;height:36px;border-radius:11px;flex-shrink:0;display:flex;align-items:center;justify-content:center;background:' +
+          (p.hot ? 'rgba(255,90,60,0.14)' : '#1C2024') + ';border:1px solid ' + (p.hot ? '#3A2520' : '#2A2F35'),
+        badgeIcon: p.hot ? '#FF5A3C' : '#8B939B'
+      };
+    });
+
+    return {
+      exChips: exChips,
+      oneRm: d.oneRm,
+      delta: d.delta,
+      points: pts,
+      lastY: d.series[d.series.length - 1],
+      chartAlt: this.state.ex + ' estimated one-rep max trending up to ' + d.oneRm + ' over three months',
+      cells: cells,
+      prs: prs
+    };
+  }
+}
+</script>
+</body>
+</html>

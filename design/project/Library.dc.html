@@ -1,0 +1,256 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>VolFit — Exercise Library</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&amp;family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:'Inter',system-ui,sans-serif;color:#F4F5F6}
+a{color:#F4F5F6;text-decoration:none}a:hover{color:#FF5A3C}
+input{font-family:'Inter',system-ui,sans-serif}
+</style>
+</helmet>
+
+<div style="width:390px;height:844px;box-sizing:border-box;background:#0A0C0E;display:flex;flex-direction:column;overflow:hidden;position:relative">
+
+  <!-- Header -->
+  <div style="flex-shrink:0;padding:48px 16px 12px 16px;display:flex;flex-direction:column;gap:12px;background:#0E1013;border-bottom:1px solid #1E2227">
+    <div style="display:flex;align-items:center;gap:10px">
+      <a href="Logger.dc.html" aria-label="Back to workout" style="width:36px;height:36px;border-radius:10px;background:#1C2024;border:1px solid #262B30;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#C7CCD1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <polyline points="15 6 9 12 15 18"></polyline>
+        </svg>
+      </a>
+      <div style="display:flex;flex-direction:column;flex:1;min-width:0">
+        <span style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:18px;color:#F4F5F6">Exercises</span>
+        <span style="font-size:11.5px;color:#8B939B">412 in library</span>
+      </div>
+      <button type="button" aria-label="Create custom exercise" style="width:36px;height:36px;border-radius:10px;background:#1C2024;border:1px solid #262B30;display:flex;align-items:center;justify-content:center;flex-shrink:0;padding:0">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#FF5A3C" stroke-width="2.4" stroke-linecap="round" aria-hidden="true">
+          <line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line>
+        </svg>
+      </button>
+    </div>
+
+    <!-- Search -->
+    <div style="display:flex;align-items:center;gap:9px;height:44px;border-radius:13px;background:#1C2024;border:1px solid #262B30;padding:0 13px">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#8B939B" stroke-width="2" stroke-linecap="round" aria-hidden="true" style="flex-shrink:0">
+        <circle cx="11" cy="11" r="7"></circle><line x1="20.5" y1="20.5" x2="16.3" y2="16.3"></line>
+      </svg>
+      <input type="search" aria-label="Search exercises" placeholder="Search exercises" style="flex:1;min-width:0;background:none;border:none;color:#F4F5F6;font-size:14.5px;padding:0">
+    </div>
+
+    <!-- Gym context -->
+    <div style="display:flex;align-items:center;gap:9px;background:#15181C;border:1px solid #262B30;border-radius:12px;padding:9px 11px">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#FF5A3C" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink:0">
+        <path d="M12 21s7-6.1 7-11a7 7 0 10-14 0c0 4.9 7 11 7 11z"></path><circle cx="12" cy="10" r="2.6"></circle>
+      </svg>
+      <span style="flex:1;min-width:0;font-size:12.5px;font-weight:600;color:#F4F5F6">UT Rec Center</span>
+      <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#8B939B;flex-shrink:0">{{countLine}}</span>
+      <a href="GymSelect.dc.html" style="font-size:11.5px;font-weight:600;color:#FF8F79;flex-shrink:0">Change</a>
+    </div>
+
+    <!-- Availability toggle + muscle chips -->
+    <div style="display:flex;gap:7px;overflow-x:auto;padding-bottom:4px">
+      <button type="button" onClick="{{toggleOnly}}" style="{{onlyStyle}}">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="{{onlyIcon}}" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink:0">
+          <polyline points="5 13 9.5 17.5 19 7"></polyline>
+        </svg>
+        At my gym
+      </button>
+      <span style="width:1px;height:22px;background:#2A2F35;flex-shrink:0;align-self:center"></span>
+      <sc-for list="{{chips}}" as="c" hint-placeholder-count="6">
+        <button type="button" onClick="{{c.pick}}" style="{{c.style}}">{{c.label}}</button>
+      </sc-for>
+    </div>
+  </div>
+
+  <!-- Exercise list -->
+  <div style="flex:1 1 auto;overflow-y:auto;padding:10px 16px 24px 16px;display:flex;flex-direction:column;gap:7px">
+    <sc-for list="{{rows}}" as="e" hint-placeholder-count="8">
+      <button type="button" onClick="{{e.open}}" style="{{e.rowStyle}}">
+        <div style="{{e.iconWrap}}">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="{{e.tint}}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M4 9v6"></path><path d="M2 8v8"></path><path d="M6 10v4"></path><path d="M18 10v4"></path><path d="M22 8v8"></path><path d="M20 9v6"></path><path d="M8 12h8"></path>
+          </svg>
+        </div>
+        <div style="display:flex;flex-direction:column;flex:1;min-width:0;gap:3px">
+          <span style="{{e.nameStyle}}">{{e.name}}</span>
+          <div style="display:flex;align-items:center;gap:7px">
+            <span style="{{e.tagStyle}}">{{e.muscle}}</span>
+            <span style="font-size:11.5px;color:#8B939B">{{e.equipment}}</span>
+          </div>
+        </div>
+        <span style="{{e.rightStyle}}">{{e.right}}</span>
+      </button>
+    </sc-for>
+  </div>
+
+  <!-- Exercise detail sheet -->
+  <sc-if value="{{detail}}" hint-placeholder-val="{{true}}">
+    <div style="position:absolute;left:0;top:0;right:0;bottom:0;background:rgba(5,6,8,0.72);display:flex;flex-direction:column;justify-content:flex-end">
+      <div style="background:#15181C;border-top:1px solid #2A2F35;border-radius:24px 24px 0 0;padding:14px 20px 24px 20px;display:flex;flex-direction:column;gap:15px">
+        <span style="width:40px;height:4px;border-radius:2px;background:#32383E;align-self:center"></span>
+
+        <div style="display:flex;align-items:flex-start;gap:12px">
+          <div style="display:flex;flex-direction:column;flex:1;min-width:0;gap:3px">
+            <span style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:19px;color:#F4F5F6">{{detailName}}</span>
+            <span style="font-size:12.5px;color:#8B939B">{{detailMeta}}</span>
+          </div>
+          <button type="button" aria-label="Close exercise detail" onClick="{{close}}" style="width:34px;height:34px;border-radius:10px;background:#1C2024;border:1px solid #2A2F35;display:flex;align-items:center;justify-content:center;flex-shrink:0;padding:0">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#C7CCD1" stroke-width="2.2" stroke-linecap="round" aria-hidden="true">
+              <line x1="6" y1="6" x2="18" y2="18"></line><line x1="18" y1="6" x2="6" y2="18"></line>
+            </svg>
+          </button>
+        </div>
+
+        <!-- Not available at this gym -->
+        <sc-if value="{{detailBlocked}}" hint-placeholder-val="{{true}}">
+          <div style="display:flex;align-items:flex-start;gap:11px;background:rgba(255,178,74,0.08);border:1px solid #3D3220;border-radius:13px;padding:12px">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#FFB24A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink:0;margin-top:1px">
+              <path d="M8 7h9l-3-3"></path><path d="M16 17H7l3 3"></path>
+            </svg>
+            <span style="flex:1;min-width:0;font-size:12.5px;line-height:1.45;color:#E4C79A">{{detailSwapLine}}</span>
+          </div>
+        </sc-if>
+
+        <!-- History graph -->
+        <div style="background:#1C2024;border:1px solid #2A2F35;border-radius:14px;padding:14px">
+          <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:10px">
+            <span style="font-size:11px;font-weight:600;letter-spacing:0.06em;color:#8B939B">HEAVIEST SET · 8 WEEKS</span>
+            <span style="font-family:'JetBrains Mono',monospace;font-weight:700;font-size:14px;color:#35D28A">+15 lb</span>
+          </div>
+          <svg viewBox="0 0 300 92" width="100%" height="92" role="img" aria-label="Heaviest set trending up from 165 to 190 pounds over eight weeks">
+            <line x1="0" y1="78" x2="300" y2="78" stroke="#2E343A" stroke-width="1"></line>
+            <line x1="0" y1="42" x2="300" y2="42" stroke="#242A30" stroke-width="1" stroke-dasharray="3 5"></line>
+            <polyline points="12,66 53,62 94,52 135,54 176,40 217,32 258,26 288,14" fill="none" stroke="#FF5A3C" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"></polyline>
+            <circle cx="288" cy="14" r="4.5" fill="#FF5A3C"></circle>
+          </svg>
+          <div style="display:flex;justify-content:space-between;margin-top:6px">
+            <span style="font-family:'JetBrains Mono',monospace;font-size:10.5px;color:#6A7178">Sep 20</span>
+            <span style="font-family:'JetBrains Mono',monospace;font-size:10.5px;color:#6A7178">Nov 12</span>
+          </div>
+        </div>
+
+        <!-- Instructions -->
+        <div style="display:flex;flex-direction:column;gap:7px">
+          <span style="font-size:11px;font-weight:600;letter-spacing:0.06em;color:#8B939B">FORM CUES</span>
+          <span style="font-size:13.5px;line-height:1.5;color:#C7CCD1">Set your feet, squeeze the shoulder blades down and back, and keep the bar stacked over the mid-chest. Lower under control until the bar grazes the shirt, then drive up and slightly back.</span>
+        </div>
+
+        <div style="display:flex;gap:10px">
+          <button type="button" onClick="{{close}}" style="flex:1;height:50px;border-radius:13px;background:#1C2024;border:1px solid #32383E;font-size:14.5px;font-weight:600;color:#C7CCD1">History</button>
+          <a href="Logger.dc.html" style="flex:2;height:50px;border-radius:13px;background:#FF5A3C;display:flex;align-items:center;justify-content:center;font-family:'Space Grotesk',sans-serif;font-size:15px;font-weight:700;color:#0A0C0E;text-align:center;padding:0 10px">{{detailCta}}</a>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { filter: 'All', detail: null, only: true };
+  }
+
+  renderVals() {
+    var self = this;
+
+    // Equipment the selected gym (UT Rec Center) actually has.
+    var gymName = 'UT Rec Center';
+    var gymHas = ['Barbell', 'Dumbbell', 'Cable', 'Bodyweight', 'Smith machine', 'Leg press', 'Kettlebell', 'EZ bar'];
+
+    var all = [
+      { name: 'Bench Press', muscle: 'Chest', equipment: 'Barbell', best: '190 × 6', tint: '#FF5A3C' },
+      { name: 'Incline Dumbbell Press', muscle: 'Chest', equipment: 'Dumbbell', best: '65 × 10', tint: '#FF5A3C' },
+      { name: 'Cable Fly', muscle: 'Chest', equipment: 'Cable', best: '35 × 12', tint: '#FF5A3C' },
+      { name: 'Pull-Up', muscle: 'Back', equipment: 'Bodyweight', best: 'BW × 11', tint: '#4A90FF' },
+      { name: 'Barbell Row', muscle: 'Back', equipment: 'Barbell', best: '155 × 8', tint: '#4A90FF' },
+      { name: 'Trap Bar Deadlift', muscle: 'Back', equipment: 'Trap bar', best: '—', tint: '#4A90FF', swap: 'Rack Pull' },
+      { name: 'Back Squat', muscle: 'Legs', equipment: 'Barbell', best: '245 × 5', tint: '#35D28A' },
+      { name: 'Romanian Deadlift', muscle: 'Legs', equipment: 'Barbell', best: '205 × 8', tint: '#35D28A' },
+      { name: 'Hack Squat', muscle: 'Legs', equipment: 'Hack squat', best: '—', tint: '#35D28A', swap: 'Leg Press' },
+      { name: 'Sled Push', muscle: 'Legs', equipment: 'Sled', best: '—', tint: '#35D28A', swap: 'Weighted Carry' },
+      { name: 'Overhead Press', muscle: 'Shoulders', equipment: 'Barbell', best: '115 × 6', tint: '#C792FF' },
+      { name: 'Lateral Raise', muscle: 'Shoulders', equipment: 'Dumbbell', best: '25 × 14', tint: '#C792FF' },
+      { name: 'Triceps Pushdown', muscle: 'Arms', equipment: 'Cable', best: '60 × 12', tint: '#FFB24A' }
+    ];
+
+    var avail = function (e) { return gymHas.indexOf(e.equipment) !== -1; };
+
+    var groups = ['All', 'Chest', 'Back', 'Legs', 'Shoulders', 'Arms', 'Core'];
+    var chips = groups.map(function (g) {
+      var sel = self.state.filter === g;
+      return {
+        label: g,
+        style: 'flex-shrink:0;height:34px;padding:0 14px;border-radius:17px;border:1px solid ' +
+          (sel ? '#FF5A3C' : '#2E343A') + ';background:' +
+          (sel ? 'rgba(255,90,60,0.14)' : '#1C2024') + ';color:' +
+          (sel ? '#FF8F79' : '#C7CCD1') + ';font-size:13px;font-weight:600',
+        pick: function () { self.setState({ filter: g }); }
+      };
+    });
+
+    var f = this.state.filter;
+    var only = this.state.only;
+
+    var rows = all.filter(function (e) {
+      if (f !== 'All' && e.muscle !== f) { return false; }
+      return only ? avail(e) : true;
+    }).map(function (e) {
+      var ok = avail(e);
+      return {
+        name: e.name,
+        muscle: e.muscle,
+        equipment: e.equipment,
+        tint: ok ? e.tint : '#5B6168',
+        open: function () { self.setState({ detail: e }); },
+        rowStyle: 'display:flex;align-items:center;gap:12px;border-radius:14px;padding:11px 13px;text-align:left;width:100%;background:' +
+          (ok ? '#15181C' : '#111316') + ';border:1px solid ' + (ok ? '#262B30' : '#1F2429'),
+        iconWrap: 'width:38px;height:38px;border-radius:11px;flex-shrink:0;display:flex;align-items:center;justify-content:center;background:' +
+          (ok ? '#1C2024' : '#16191D') + ';border:1px solid ' + (ok ? '#2A2F35' : '#23282D'),
+        nameStyle: 'font-size:14.5px;font-weight:600;color:' + (ok ? '#F4F5F6' : '#9AA1A8'),
+        tagStyle: 'font-size:10.5px;font-weight:600;border-radius:5px;padding:2px 6px;color:' +
+          (ok ? '#C7CCD1' : '#8B939B') + ';background:' + (ok ? '#242A30' : '#1D2126'),
+        right: ok ? e.best : 'Not here',
+        rightStyle: ok
+          ? "font-family:'JetBrains Mono',monospace;font-size:11.5px;color:#6A7178;flex-shrink:0"
+          : 'font-size:11px;font-weight:600;color:#FFB24A;background:rgba(255,178,74,0.1);border-radius:6px;padding:3px 7px;flex-shrink:0'
+      };
+    });
+
+    var d = this.state.detail;
+    var dOk = d ? avail(d) : true;
+
+    return {
+      chips: chips,
+      rows: rows,
+      countLine: '356 of 412 here',
+      toggleOnly: function () { self.setState({ only: !only }); },
+      onlyStyle: 'flex-shrink:0;display:inline-flex;align-items:center;gap:6px;height:34px;padding:0 13px;border-radius:17px;border:1px solid ' +
+        (only ? '#35D28A' : '#2E343A') + ';background:' + (only ? 'rgba(53,210,138,0.12)' : '#1C2024') +
+        ';color:' + (only ? '#6FE0AC' : '#C7CCD1') + ';font-size:13px;font-weight:600',
+      onlyIcon: only ? '#35D28A' : '#6A7178',
+      detail: !!d,
+      detailName: d ? d.name : '',
+      detailMeta: d ? (dOk ? (d.equipment + ' · ' + d.muscle + ' · best ' + d.best) : (d.equipment + ' · ' + d.muscle + ' · never logged here')) : '',
+      detailBlocked: !!d && !dOk,
+      detailSwapLine: d && !dOk
+        ? (gymName + ' has no ' + d.equipment.toLowerCase() + '. Closest match in your equipment list: ' + d.swap + '.')
+        : '',
+      detailCta: d && !dOk ? ('Add ' + d.swap + ' instead') : 'Add to Workout',
+      close: function () { self.setState({ detail: null }); }
+    };
+  }
+}
+</script>
+</body>
+</html>

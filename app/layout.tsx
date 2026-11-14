@@ -1,34 +1,34 @@
-import type { Metadata, Viewport } from 'next';
-import './globals.css';
-import AppShell from '@/src/features/c00-p0-foundation/AppShell';
-
-export const viewport: Viewport = {
-  width: 'device-width',
-  initialScale: 1,
-  viewportFit: 'cover',
-  themeColor: '#0E0E0F',
-};
+import type { Metadata, Viewport } from "next";
+import { VolFitProvider } from "@/lib/store";
+import "./globals.css";
 
 export const metadata: Metadata = {
-  title: 'VolsLift',
-  description: 'Fast workout logger',
-  manifest: '/manifest.webmanifest',
-  appleWebApp: {
-    capable: true,
-    statusBarStyle: 'black-translucent',
-    title: 'VolsLift',
-  },
+  title: "VolFit",
+  description:
+    "Workout tracker that only offers exercises your gym can actually load, with progression and deload calls from your own numbers.",
+  applicationName: "VolFit",
 };
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  themeColor: "#0A0C0E",
+};
+
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
+      <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link
+          href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600;700&display=swap"
+          rel="stylesheet"
+        />
+      </head>
       <body>
-        <AppShell>{children}</AppShell>
+        <VolFitProvider>{children}</VolFitProvider>
       </body>
     </html>
   );

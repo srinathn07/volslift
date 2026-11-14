@@ -1,0 +1,243 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>VolFit — Your Gym</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&amp;family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:'Inter',system-ui,sans-serif;color:#F4F5F6}
+a{color:#F4F5F6;text-decoration:none}a:hover{color:#FF5A3C}
+input{font-family:'Inter',system-ui,sans-serif}
+</style>
+</helmet>
+
+<div style="width:390px;height:844px;box-sizing:border-box;background:#0A0C0E;display:flex;flex-direction:column;overflow:hidden">
+
+  <!-- Header -->
+  <div style="flex-shrink:0;padding:48px 16px 12px 16px;display:flex;flex-direction:column;gap:11px;background:#0E1013;border-bottom:1px solid #1E2227">
+    <div style="display:flex;align-items:center;gap:11px">
+      <a href="Main.dc.html" aria-label="Back to home" style="width:36px;height:36px;border-radius:10px;background:#1C2024;border:1px solid #262B30;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#C7CCD1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <polyline points="15 6 9 12 15 18"></polyline>
+        </svg>
+      </a>
+      <div style="display:flex;flex-direction:column;flex:1;min-width:0;gap:1px">
+        <span style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:18px;color:#F4F5F6">Your Gym</span>
+        <span style="font-size:11.5px;color:#8B939B">Tap a gym to pick it and see its kit</span>
+      </div>
+      <button type="button" aria-label="Add a gym" style="width:36px;height:36px;border-radius:10px;background:#1C2024;border:1px solid #262B30;display:flex;align-items:center;justify-content:center;flex-shrink:0;padding:0">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#FF5A3C" stroke-width="2.4" stroke-linecap="round" aria-hidden="true">
+          <line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line>
+        </svg>
+      </button>
+    </div>
+
+    <div style="display:flex;align-items:center;gap:9px;height:40px;border-radius:12px;background:#1C2024;border:1px solid #262B30;padding:0 12px">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8B939B" stroke-width="2" stroke-linecap="round" aria-hidden="true" style="flex-shrink:0">
+        <circle cx="11" cy="11" r="7"></circle><line x1="20.5" y1="20.5" x2="16.3" y2="16.3"></line>
+      </svg>
+      <input type="search" aria-label="Search gyms near you" placeholder="Search gyms near you" style="flex:1;min-width:0;background:none;border:none;color:#F4F5F6;font-size:14px;padding:0">
+    </div>
+  </div>
+
+  <div style="flex:1 1 auto;overflow-y:auto;padding:14px 16px 24px 16px;display:flex;flex-direction:column;gap:14px">
+
+    <!-- Gyms, each expanding to its equipment -->
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <span style="font-size:10.5px;font-weight:600;letter-spacing:0.07em;color:#8B939B">SAVED GYMS</span>
+
+      <sc-for list="{{gyms}}" as="g" hint-placeholder-count="3">
+        <div style="{{g.cardStyle}}">
+          <button type="button" onClick="{{g.pick}}" aria-expanded="{{g.open}}" style="display:flex;align-items:center;gap:11px;width:100%;background:none;border:none;padding:11px 12px;text-align:left">
+            <div style="{{g.markStyle}}">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="{{g.markIcon}}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M4 9v6"></path><path d="M2 8v8"></path><path d="M6 10v4"></path><path d="M18 10v4"></path><path d="M22 8v8"></path><path d="M20 9v6"></path><path d="M8 12h8"></path>
+              </svg>
+            </div>
+            <div style="display:flex;flex-direction:column;flex:1;min-width:0;gap:2px">
+              <span style="font-size:14px;font-weight:600;color:#F4F5F6">{{g.name}}</span>
+              <span style="font-family:'JetBrains Mono',monospace;font-size:10.5px;color:#8B939B">{{g.meta}}</span>
+            </div>
+            <div style="{{g.checkStyle}}">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="{{g.checkIcon}}" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <polyline points="5 13 9.5 17.5 19 7"></polyline>
+              </svg>
+            </div>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6A7178" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="{{g.chevStyle}}">
+              <polyline points="6 9 12 15 18 9"></polyline>
+            </svg>
+          </button>
+
+          <sc-if value="{{g.open}}" hint-placeholder-val="{{true}}">
+            <div style="padding:0 12px 12px 12px;display:flex;flex-direction:column;gap:9px">
+              <span style="height:1px;background:#242A30"></span>
+              <div style="display:flex;flex-wrap:wrap;gap:6px">
+                <sc-for list="{{g.equipment}}" as="q" hint-placeholder-count="12">
+                  <span style="{{q.style}}">
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="{{q.icon}}" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink:0">
+                      <polyline points="{{q.glyph}}"></polyline>
+                    </svg>
+                    {{q.label}}
+                  </span>
+                </sc-for>
+              </div>
+              <div style="display:flex;align-items:flex-start;gap:8px">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#FFB24A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink:0;margin-top:2px">
+                  <path d="M8 7h9l-3-3"></path><path d="M16 17H7l3 3"></path>
+                </svg>
+                <span style="flex:1;min-width:0;font-size:11.5px;line-height:1.45;color:#9AA1A8">{{g.swap}}</span>
+              </div>
+            </div>
+          </sc-if>
+        </div>
+      </sc-for>
+    </div>
+
+    <!-- Picker rules, collapsed -->
+    <div style="background:#15181C;border:1px solid #262B30;border-radius:14px;overflow:hidden">
+      <button type="button" onClick="{{toggleRules}}" aria-expanded="{{rulesOpen}}" style="display:flex;align-items:center;gap:11px;width:100%;background:none;border:none;padding:11px 12px;text-align:left">
+        <div style="width:34px;height:34px;border-radius:10px;background:#1C2024;border:1px solid #2A2F35;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8B939B" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <line x1="4" y1="6" x2="20" y2="6"></line><circle cx="9" cy="6" r="2"></circle>
+            <line x1="4" y1="12" x2="20" y2="12"></line><circle cx="15" cy="12" r="2"></circle>
+          </svg>
+        </div>
+        <div style="display:flex;flex-direction:column;flex:1;min-width:0;gap:2px">
+          <span style="font-size:14px;font-weight:600;color:#F4F5F6">Picker rules</span>
+          <span style="font-size:11px;color:#8B939B">{{rulesSummary}}</span>
+        </div>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6A7178" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="{{rulesChev}}">
+          <polyline points="6 9 12 15 18 9"></polyline>
+        </svg>
+      </button>
+
+      <sc-if value="{{rulesOpen}}" hint-placeholder-val="{{true}}">
+        <div style="padding:0 12px 12px 12px;display:flex;flex-direction:column;gap:9px">
+          <span style="height:1px;background:#242A30"></span>
+          <button type="button" onClick="{{toggleOnly}}" style="display:flex;align-items:center;gap:12px;background:none;border:none;padding:0;text-align:left;width:100%">
+            <div style="display:flex;flex-direction:column;flex:1;min-width:0;gap:2px">
+              <span style="font-size:13.5px;font-weight:600;color:#F4F5F6">Only show available exercises</span>
+              <span style="font-size:11.5px;line-height:1.4;color:#8B939B">{{onlyHint}}</span>
+            </div>
+            <span style="{{trackStyle}}">
+              <span style="{{knobStyle}}"></span>
+            </span>
+          </button>
+        </div>
+      </sc-if>
+    </div>
+
+    <a href="Library.dc.html" style="height:48px;border-radius:13px;background:#FF5A3C;display:flex;align-items:center;justify-content:center;gap:8px;font-family:'Space Grotesk',sans-serif;font-size:15px;font-weight:700;color:#0A0C0E">
+      Browse exercises here
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#0A0C0E" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <polyline points="9 6 15 12 9 18"></polyline>
+      </svg>
+    </a>
+
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { gym: 'UT Rec Center', open: 'UT Rec Center', only: true, rulesOpen: false };
+  }
+
+  renderVals() {
+    var self = this;
+
+    var ALL = ['Barbell', 'Squat rack', 'Bench', 'Dumbbells to 100', 'Cable stack', 'Pull-up bar',
+      'Smith machine', 'Leg press', 'Kettlebells', 'EZ bar', 'Trap bar', 'Hack squat', 'Sled', 'Belt squat'];
+
+    var catalog = [
+      {
+        name: 'UT Rec Center',
+        meta: 'Campus · 356/412 exercises',
+        has: ['Barbell', 'Squat rack', 'Bench', 'Dumbbells to 100', 'Cable stack', 'Pull-up bar', 'Smith machine', 'Leg press', 'Kettlebells', 'EZ bar'],
+        missing: 56,
+        swap: 'No trap bar, hack squat or sled. Those swap to rack pulls, leg press and weighted carries.'
+      },
+      {
+        name: 'Planet Fitness · Kingston Pike',
+        meta: '2.4 mi · 188/412 exercises',
+        has: ['Dumbbells to 100', 'Cable stack', 'Smith machine', 'Leg press', 'Hack squat'],
+        missing: 224,
+        swap: 'No barbells or racks. Bench press swaps to Smith press, squats to leg press and hack squat.'
+      },
+      {
+        name: 'Home garage',
+        meta: 'Saved · 214/412 exercises',
+        has: ['Barbell', 'Squat rack', 'Bench', 'Pull-up bar', 'Kettlebells', 'EZ bar'],
+        missing: 198,
+        swap: 'No cables or machines. Cable work swaps to band and dumbbell versions.'
+      }
+    ];
+
+    var sel = catalog.filter(function (g) { return g.name === self.state.gym; })[0] || catalog[0];
+
+    var chip = function (label, on) {
+      return {
+        label: label,
+        glyph: on ? '5 13 9.5 17.5 19 7' : '6 6 18 18',
+        icon: on ? '#35D28A' : '#6A7178',
+        style: 'display:inline-flex;align-items:center;gap:5px;height:28px;padding:0 9px;border-radius:8px;font-size:11.5px;font-weight:500;background:' +
+          (on ? '#1C2024' : 'transparent') + ';border:1px solid ' + (on ? '#2A2F35' : '#23282D') + ';color:' +
+          (on ? '#E4E7EA' : '#6A7178') + (on ? '' : ';text-decoration:line-through')
+      };
+    };
+
+    var gyms = catalog.map(function (g) {
+      var on = g.name === self.state.gym;
+      var open = self.state.open === g.name;
+      var have = ALL.filter(function (q) { return g.has.indexOf(q) !== -1; });
+      var lack = ALL.filter(function (q) { return g.has.indexOf(q) === -1; });
+      return {
+        name: g.name,
+        meta: g.meta,
+        swap: g.swap,
+        open: open,
+        equipment: have.map(function (q) { return chip(q, true); })
+          .concat(lack.map(function (q) { return chip(q, false); })),
+        pick: function () {
+          self.setState({ gym: g.name, open: open && on ? null : g.name });
+        },
+        cardStyle: 'border-radius:14px;overflow:hidden;background:' +
+          (on ? 'rgba(255,90,60,0.07)' : '#15181C') + ';border:1px solid ' + (on ? '#FF5A3C' : '#262B30'),
+        markStyle: 'width:34px;height:34px;border-radius:10px;flex-shrink:0;display:flex;align-items:center;justify-content:center;background:' +
+          (on ? 'rgba(255,90,60,0.16)' : '#1C2024') + ';border:1px solid ' + (on ? '#3A2520' : '#2A2F35'),
+        markIcon: on ? '#FF5A3C' : '#8B939B',
+        checkStyle: 'width:22px;height:22px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;background:' +
+          (on ? '#FF5A3C' : 'transparent') + ';border:1.5px solid ' + (on ? '#FF5A3C' : '#3A4046'),
+        checkIcon: on ? '#0A0C0E' : 'transparent',
+        chevStyle: 'flex-shrink:0;transition:transform 150ms ease;transform:rotate(' + (open ? '180deg' : '0deg') + ')'
+      };
+    });
+
+    var only = this.state.only;
+    var rulesOpen = this.state.rulesOpen;
+
+    return {
+      gyms: gyms,
+      toggleOnly: function () { self.setState({ only: !only }); },
+      onlyHint: only
+        ? 'The picker hides what ' + sel.name + ' cannot do'
+        : 'Unavailable exercises stay visible but marked',
+      trackStyle: 'width:44px;height:26px;border-radius:13px;flex-shrink:0;display:flex;align-items:center;padding:3px;box-sizing:border-box;justify-content:' +
+        (only ? 'flex-end' : 'flex-start') + ';background:' + (only ? '#FF5A3C' : '#2A2F35'),
+      knobStyle: 'width:20px;height:20px;border-radius:50%;background:' + (only ? '#0A0C0E' : '#8B939B'),
+      rulesOpen: rulesOpen,
+      rulesSummary: only ? ('Hiding ' + sel.missing + ' unavailable exercises') : 'Showing all, unavailable ones marked',
+      rulesChev: 'flex-shrink:0;transition:transform 150ms ease;transform:rotate(' + (rulesOpen ? '180deg' : '0deg') + ')'
+    };
+  }
+}
+</script>
+</body>
+</html>

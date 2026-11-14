@@ -1,0 +1,29 @@
+{
+  "v": 3,
+  "createdOnFiles": { "v": 1, "at": "2026-11-14T06:52:00Z" },
+  "title": "VolFit",
+  "launch": { "view": "canvas" },
+  "pages": [],
+  "boards": {
+    "Main.dc.html": { "x": 0, "y": 0, "w": 390, "h": 844, "title": "Home", "is_interactive": true },
+    "GymSelect.dc.html": { "x": 470, "y": 0, "w": 390, "h": 844, "title": "Your Gym", "is_interactive": true },
+    "Logger.dc.html": { "x": 940, "y": 0, "w": 390, "h": 844, "title": "Active Workout", "is_interactive": true },
+    "Library.dc.html": { "x": 1410, "y": 0, "w": 390, "h": 844, "title": "Exercise Library", "is_interactive": true },
+    "RoutineBuilder.dc.html": { "x": 1880, "y": 0, "w": 390, "h": 844, "title": "Routine Builder", "is_interactive": true },
+    "Progress.dc.html": { "x": 2350, "y": 0, "w": 390, "h": 844, "title": "Progress", "is_interactive": true },
+    "AICoach.dc.html": { "x": 2820, "y": 0, "w": 390, "h": 844, "title": "AI Coach", "is_interactive": true }
+  },
+  "order": [
+    "Main.dc.html",
+    "GymSelect.dc.html",
+    "Logger.dc.html",
+    "Library.dc.html",
+    "RoutineBuilder.dc.html",
+    "Progress.dc.html",
+    "AICoach.dc.html"
+  ],
+  "notes": {
+    "n1": { "x": 0, "y": -300, "text": "VolFit — AI Workout Tracker", "kind": "title1", "maxW": 3210 }
+  },
+  "designSystems": []
+}

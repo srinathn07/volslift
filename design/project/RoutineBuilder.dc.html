@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>VolFit — Routine Builder</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&amp;family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:'Inter',system-ui,sans-serif;color:#F4F5F6}
+a{color:#F4F5F6;text-decoration:none}a:hover{color:#FF5A3C}
+input{font-family:'Inter',system-ui,sans-serif}
+</style>
+</helmet>
+
+<div style="width:390px;height:844px;box-sizing:border-box;background:#0A0C0E;display:flex;flex-direction:column;overflow:hidden">
+
+  <!-- Header -->
+  <div style="flex-shrink:0;padding:48px 16px 14px 16px;display:flex;align-items:center;gap:10px;background:#0E1013;border-bottom:1px solid #1E2227">
+    <a href="Main.dc.html" aria-label="Cancel and go home" style="width:36px;height:36px;border-radius:10px;background:#1C2024;border:1px solid #262B30;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#C7CCD1" stroke-width="2.2" stroke-linecap="round" aria-hidden="true">
+        <line x1="6" y1="6" x2="18" y2="18"></line><line x1="18" y1="6" x2="6" y2="18"></line>
+      </svg>
+    </a>
+    <span style="flex:1;min-width:0;font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:18px;color:#F4F5F6">New Routine</span>
+    <button type="button" style="height:36px;padding:0 18px;border-radius:11px;background:#FF5A3C;border:none;font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:14px;color:#0A0C0E;flex-shrink:0">Save</button>
+  </div>
+
+  <div style="flex:1 1 auto;overflow-y:auto;padding:18px 16px 24px 16px;display:flex;flex-direction:column;gap:18px">
+
+    <!-- Name + folder -->
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <label for="routine-name" style="font-size:11px;font-weight:600;letter-spacing:0.06em;color:#8B939B">ROUTINE NAME</label>
+      <input id="routine-name" type="text" defaultValue="Upper Power A" style="height:50px;box-sizing:border-box;border-radius:13px;background:#15181C;border:1px solid #2A2F35;color:#F4F5F6;font-family:'Space Grotesk',sans-serif;font-size:17px;font-weight:700;padding:0 14px">
+      <div style="display:flex;gap:9px">
+        <button type="button" style="flex:1;height:42px;border-radius:11px;background:#15181C;border:1px solid #262B30;color:#C7CCD1;font-size:13px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:7px">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#8B939B" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V7z"></path>
+          </svg>
+          Push / Pull split
+        </button>
+        <a href="AICoach.dc.html" style="flex:1;height:42px;border-radius:11px;background:#15181C;border:1px solid #2E2420;color:#FF8F79;font-size:13px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:7px">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="#FF5A3C" stroke="none" aria-hidden="true">
+            <polygon points="13 2 4 14 11 14 9 22 20 10 13 10"></polygon>
+          </svg>
+          Build with AI
+        </a>
+      </div>
+    </div>
+
+    <!-- Exercises -->
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <div style="display:flex;align-items:baseline;justify-content:space-between">
+        <span style="font-size:11px;font-weight:600;letter-spacing:0.06em;color:#8B939B">EXERCISES · 5</span>
+        <span style="font-size:11.5px;color:#6A7178">Hold to reorder</span>
+      </div>
+
+      <sc-for list="{{items}}" as="x" hint-placeholder-count="5">
+        <div style="display:flex;align-items:center;gap:10px;background:#15181C;border:1px solid #262B30;border-radius:14px;padding:11px 12px">
+          <button type="button" aria-label="{{x.dragLabel}}" style="width:26px;height:34px;background:none;border:none;display:flex;align-items:center;justify-content:center;flex-shrink:0;padding:0">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="#565C63" stroke="none" aria-hidden="true">
+              <circle cx="9" cy="6" r="1.5"></circle><circle cx="15" cy="6" r="1.5"></circle>
+              <circle cx="9" cy="12" r="1.5"></circle><circle cx="15" cy="12" r="1.5"></circle>
+              <circle cx="9" cy="18" r="1.5"></circle><circle cx="15" cy="18" r="1.5"></circle>
+            </svg>
+          </button>
+          <div style="display:flex;flex-direction:column;flex:1;min-width:0;gap:3px">
+            <span style="font-size:14.5px;font-weight:600;color:#F4F5F6">{{x.name}}</span>
+            <span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#8B939B">{{x.target}}</span>
+          </div>
+          <button type="button" aria-label="{{x.editLabel}}" style="height:32px;padding:0 11px;border-radius:9px;background:#1C2024;border:1px solid #2A2F35;color:#C7CCD1;font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:600;flex-shrink:0">{{x.sets}}</button>
+          <button type="button" aria-label="{{x.removeLabel}}" style="width:30px;height:32px;border-radius:9px;background:none;border:none;display:flex;align-items:center;justify-content:center;flex-shrink:0;padding:0">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#6A7178" stroke-width="2.2" stroke-linecap="round" aria-hidden="true">
+              <line x1="6" y1="6" x2="18" y2="18"></line><line x1="18" y1="6" x2="6" y2="18"></line>
+            </svg>
+          </button>
+        </div>
+      </sc-for>
+
+      <a href="Library.dc.html" style="height:48px;border-radius:13px;background:none;border:1px dashed #32383E;color:#F4F5F6;font-size:14.5px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:8px">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#FF5A3C" stroke-width="2.4" stroke-linecap="round" aria-hidden="true">
+          <line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line>
+        </svg>
+        Add Exercise
+      </a>
+
+      <div style="display:flex;align-items:center;gap:9px;background:#15181C;border:1px solid #262B30;border-radius:12px;padding:10px 12px">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#FF5A3C" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink:0">
+          <path d="M12 21s7-6.1 7-11a7 7 0 10-14 0c0 4.9 7 11 7 11z"></path><circle cx="12" cy="10" r="2.6"></circle>
+        </svg>
+        <span style="flex:1;min-width:0;font-size:12px;line-height:1.4;color:#8B939B">Picker is limited to the <strong style="color:#C7CCD1;font-weight:600">356 exercises</strong> UT Rec Center has equipment for.</span>
+        <a href="GymSelect.dc.html" style="font-size:11.5px;font-weight:600;color:#FF8F79;flex-shrink:0">Change</a>
+      </div>
+    </div>
+
+    <!-- Estimates -->
+    <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px">
+      <div style="background:#15181C;border:1px solid #262B30;border-radius:13px;padding:12px 10px;display:flex;flex-direction:column;gap:4px">
+        <span style="font-family:'JetBrains Mono',monospace;font-weight:700;font-size:15px;color:#F4F5F6">18</span>
+        <span style="font-size:10.5px;color:#8B939B">working sets</span>
+      </div>
+      <div style="background:#15181C;border:1px solid #262B30;border-radius:13px;padding:12px 10px;display:flex;flex-direction:column;gap:4px">
+        <span style="font-family:'JetBrains Mono',monospace;font-weight:700;font-size:15px;color:#F4F5F6">~62</span>
+        <span style="font-size:10.5px;color:#8B939B">minutes</span>
+      </div>
+      <div style="background:#15181C;border:1px solid #262B30;border-radius:13px;padding:12px 10px;display:flex;flex-direction:column;gap:4px">
+        <span style="font-family:'JetBrains Mono',monospace;font-weight:700;font-size:15px;color:#F4F5F6">4</span>
+        <span style="font-size:10.5px;color:#8B939B">muscle groups</span>
+      </div>
+    </div>
+
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    var raw = [
+      { name: 'Bench Press', target: '185 lb · 6–8 reps', sets: '4 sets' },
+      { name: 'Barbell Row', target: '155 lb · 8–10 reps', sets: '4 sets' },
+      { name: 'Overhead Press', target: '115 lb · 6–8 reps', sets: '3 sets' },
+      { name: 'Pull-Up', target: 'Bodyweight · 8–12 reps', sets: '4 sets' },
+      { name: 'Triceps Pushdown', target: '60 lb · 12–15 reps', sets: '3 sets' }
+    ];
+    var items = raw.map(function (x) {
+      return {
+        name: x.name,
+        target: x.target,
+        sets: x.sets,
+        dragLabel: 'Reorder ' + x.name,
+        editLabel: 'Edit sets for ' + x.name,
+        removeLabel: 'Remove ' + x.name
+      };
+    });
+    return { items: items };
+  }
+}
+</script>
+</body>
+</html>

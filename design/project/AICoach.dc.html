@@ -1,0 +1,204 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>VolFit — AI Coach</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&amp;family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:'Inter',system-ui,sans-serif;color:#F4F5F6}
+a{color:#F4F5F6;text-decoration:none}a:hover{color:#FF5A3C}
+input{font-family:'Inter',system-ui,sans-serif}
+</style>
+</helmet>
+
+<div style="width:390px;height:844px;box-sizing:border-box;background:#0A0C0E;display:flex;flex-direction:column;overflow:hidden">
+
+  <!-- Header -->
+  <div style="flex-shrink:0;padding:48px 16px 14px 16px;display:flex;align-items:center;gap:11px;background:#0E1013;border-bottom:1px solid #1E2227">
+    <a href="Main.dc.html" aria-label="Back to home" style="width:36px;height:36px;border-radius:10px;background:#1C2024;border:1px solid #262B30;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#C7CCD1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <polyline points="15 6 9 12 15 18"></polyline>
+      </svg>
+    </a>
+    <div style="display:flex;flex-direction:column;flex:1;min-width:0;gap:1px">
+      <span style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:18px;color:#F4F5F6">AI Coach</span>
+      <span style="font-size:11.5px;color:#8B939B">Reading your last 47 sessions</span>
+    </div>
+    <div style="width:36px;height:36px;border-radius:11px;background:rgba(255,90,60,0.14);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="#FF5A3C" stroke="none" aria-hidden="true">
+        <polygon points="13 2 4 14 11 14 9 22 20 10 13 10"></polygon>
+      </svg>
+    </div>
+  </div>
+
+  <!-- Suggestions -->
+  <div style="flex:1 1 auto;overflow-y:auto;padding:16px 16px 20px 16px;display:flex;flex-direction:column;gap:14px">
+
+    <span style="font-size:11px;font-weight:600;letter-spacing:0.06em;color:#8B939B">FOR TOMORROW · PUSH DAY</span>
+
+    <!-- Progression card -->
+    <div style="background:#15181C;border:1px solid #2E2420;border-radius:16px;padding:15px 15px 13px 15px;display:flex;flex-direction:column;gap:12px">
+      <div style="display:flex;align-items:flex-start;gap:12px">
+        <div style="width:36px;height:36px;border-radius:11px;background:rgba(53,210,138,0.12);border:1px solid #22382E;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#35D28A" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <polyline points="3 17 9 11 13 15 21 7"></polyline><polyline points="15 7 21 7 21 13"></polyline>
+          </svg>
+        </div>
+        <div style="display:flex;flex-direction:column;flex:1;min-width:0;gap:4px">
+          <span style="font-size:15px;font-weight:600;color:#F4F5F6">Add weight to Bench Press</span>
+          <span style="font-size:13px;line-height:1.45;color:#C7CCD1">Open at <strong style="font-family:'JetBrains Mono',monospace;color:#F4F5F6">195 lb × 5</strong> instead of 190 × 6. Keep the back-off sets where they are.</span>
+        </div>
+      </div>
+
+      <button type="button" onClick="{{toggle1}}" style="display:flex;align-items:center;gap:6px;background:none;border:none;padding:0;color:#8B939B;font-size:12px;font-weight:600;align-self:flex-start">
+        Why this suggestion?
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#8B939B" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="{{chev1}}">
+          <polyline points="6 9 12 15 18 9"></polyline>
+        </svg>
+      </button>
+
+      <sc-if value="{{open1}}" hint-placeholder-val="{{true}}">
+        <div style="background:#1C2024;border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:8px">
+          <span style="font-size:12.5px;line-height:1.5;color:#C7CCD1">Last three sessions you hit all six reps at 190 lb, and the final set stayed at RPE 7. Bar speed on set three was steady rather than grinding, which is the signal to move up before adding reps.</span>
+          <div style="display:flex;gap:16px;padding-top:2px">
+            <div style="display:flex;flex-direction:column;gap:1px">
+              <span style="font-family:'JetBrains Mono',monospace;font-weight:700;font-size:13px;color:#F4F5F6">3 / 3</span>
+              <span style="font-size:10.5px;color:#8B939B">reps hit</span>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:1px">
+              <span style="font-family:'JetBrains Mono',monospace;font-weight:700;font-size:13px;color:#F4F5F6">7.0</span>
+              <span style="font-size:10.5px;color:#8B939B">avg RPE</span>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:1px">
+              <span style="font-family:'JetBrains Mono',monospace;font-weight:700;font-size:13px;color:#F4F5F6">+2.6%</span>
+              <span style="font-size:10.5px;color:#8B939B">load step</span>
+            </div>
+          </div>
+        </div>
+      </sc-if>
+
+      <div style="display:flex;gap:9px">
+        <a href="Logger.dc.html" style="flex:1;height:42px;border-radius:11px;background:#FF5A3C;display:flex;align-items:center;justify-content:center;font-family:'Space Grotesk',sans-serif;font-size:13.5px;font-weight:700;color:#0A0C0E">Apply to routine</a>
+        <button type="button" style="height:42px;padding:0 16px;border-radius:11px;background:#1C2024;border:1px solid #32383E;color:#C7CCD1;font-size:13.5px;font-weight:600">Dismiss</button>
+      </div>
+    </div>
+
+    <!-- Deload warning card -->
+    <div style="background:#15181C;border:1px solid #3A2F20;border-radius:16px;padding:15px 15px 13px 15px;display:flex;flex-direction:column;gap:12px">
+      <div style="display:flex;align-items:flex-start;gap:12px">
+        <div style="width:36px;height:36px;border-radius:11px;background:rgba(255,178,74,0.12);border:1px solid #3D3220;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#FFB24A" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M12 3l9 17H3l9-17z"></path><line x1="12" y1="10" x2="12" y2="14"></line><circle cx="12" cy="17" r="0.9" fill="#FFB24A"></circle>
+          </svg>
+        </div>
+        <div style="display:flex;flex-direction:column;flex:1;min-width:0;gap:4px">
+          <span style="font-size:15px;font-weight:600;color:#F4F5F6">Leg volume is climbing fast</span>
+          <span style="font-size:13px;line-height:1.45;color:#C7CCD1">Squat tonnage is up <strong style="font-family:'JetBrains Mono',monospace;color:#F4F5F6">34%</strong> in two weeks. A lighter week now protects the next block.</span>
+        </div>
+      </div>
+
+      <button type="button" onClick="{{toggle2}}" style="display:flex;align-items:center;gap:6px;background:none;border:none;padding:0;color:#8B939B;font-size:12px;font-weight:600;align-self:flex-start">
+        Why this suggestion?
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#8B939B" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="{{chev2}}">
+          <polyline points="6 9 12 15 18 9"></polyline>
+        </svg>
+      </button>
+
+      <sc-if value="{{open2}}" hint-placeholder-val="{{true}}">
+        <div style="background:#1C2024;border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:8px">
+          <span style="font-size:12.5px;line-height:1.5;color:#C7CCD1">Weekly leg tonnage went 14,200 to 19,000 lb while reported session RPE rose from 7.2 to 8.6 and your logged rest between sets stretched by 40 seconds. That combination usually shows up a week before reps start dropping.</span>
+          <div style="display:flex;align-items:flex-end;gap:7px;height:46px;padding-top:4px">
+            <span style="flex:1;height:48%;border-radius:4px 4px 0 0;background:#2E343A"></span>
+            <span style="flex:1;height:58%;border-radius:4px 4px 0 0;background:#2E343A"></span>
+            <span style="flex:1;height:54%;border-radius:4px 4px 0 0;background:#2E343A"></span>
+            <span style="flex:1;height:78%;border-radius:4px 4px 0 0;background:#FFB24A"></span>
+            <span style="flex:1;height:100%;border-radius:4px 4px 0 0;background:#FFB24A"></span>
+          </div>
+        </div>
+      </sc-if>
+
+      <div style="display:flex;gap:9px">
+        <button type="button" style="flex:1;height:42px;border-radius:11px;background:#1C2024;border:1px solid #32383E;color:#F4F5F6;font-size:13.5px;font-weight:600">Plan a light week</button>
+        <button type="button" style="height:42px;padding:0 16px;border-radius:11px;background:none;border:1px solid #262B30;color:#8B939B;font-size:13.5px;font-weight:600">Ignore</button>
+      </div>
+    </div>
+
+    <!-- Routine generator -->
+    <div style="background:#15181C;border:1px solid #262B30;border-radius:16px;padding:15px;display:flex;flex-direction:column;gap:12px">
+      <div style="display:flex;flex-direction:column;gap:3px">
+        <span style="font-size:14.5px;font-weight:600;color:#F4F5F6">Build a routine from a goal</span>
+        <span style="font-size:12.5px;color:#8B939B">Four days a week, 60 minutes, your equipment</span>
+      </div>
+      <div style="display:flex;gap:7px;flex-wrap:wrap">
+        <sc-for list="{{goals}}" as="g" hint-placeholder-count="4">
+          <button type="button" onClick="{{g.pick}}" style="{{g.style}}">{{g.label}}</button>
+        </sc-for>
+      </div>
+      <a href="RoutineBuilder.dc.html" style="height:46px;border-radius:12px;background:#1C2024;border:1px solid #32383E;display:flex;align-items:center;justify-content:center;gap:8px;font-size:14px;font-weight:600;color:#F4F5F6">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="#FF5A3C" stroke="none" aria-hidden="true">
+          <polygon points="13 2 4 14 11 14 9 22 20 10 13 10"></polygon>
+        </svg>
+        Generate routine
+      </a>
+    </div>
+
+  </div>
+
+  <!-- Composer -->
+  <div style="flex-shrink:0;padding:12px 16px 24px 16px;background:#0E1013;border-top:1px solid #1E2227;display:flex;align-items:center;gap:9px">
+    <input type="text" aria-label="Ask your coach a question" placeholder="Ask about form, swaps, soreness…" style="flex:1;min-width:0;height:48px;box-sizing:border-box;border-radius:14px;background:#1C2024;border:1px solid #2A2F35;color:#F4F5F6;font-size:14px;padding:0 14px">
+    <button type="button" aria-label="Send question" style="width:48px;height:48px;border-radius:14px;background:#FF5A3C;border:none;display:flex;align-items:center;justify-content:center;flex-shrink:0;padding:0">
+      <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#0A0C0E" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <line x1="12" y1="19" x2="12" y2="5"></line><polyline points="5 12 12 5 19 12"></polyline>
+      </svg>
+    </button>
+  </div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { open1: true, open2: false, goal: 'Strength' };
+  }
+
+  renderVals() {
+    var self = this;
+    var goalNames = ['Strength', 'Hypertrophy', 'Lean out', 'Return from break'];
+    var goals = goalNames.map(function (g) {
+      var sel = self.state.goal === g;
+      return {
+        label: g,
+        style: 'height:34px;padding:0 14px;border-radius:17px;border:1px solid ' +
+          (sel ? '#FF5A3C' : '#2E343A') + ';background:' +
+          (sel ? 'rgba(255,90,60,0.14)' : '#1C2024') + ';color:' +
+          (sel ? '#FF8F79' : '#C7CCD1') + ';font-size:12.5px;font-weight:600',
+        pick: function () { self.setState({ goal: g }); }
+      };
+    });
+
+    var chev = function (open) {
+      return 'transition:transform 150ms ease;transform:rotate(' + (open ? '180deg' : '0deg') + ')';
+    };
+
+    return {
+      goals: goals,
+      open1: this.state.open1,
+      open2: this.state.open2,
+      chev1: chev(this.state.open1),
+      chev2: chev(this.state.open2),
+      toggle1: function () { self.setState({ open1: !self.state.open1 }); },
+      toggle2: function () { self.setState({ open2: !self.state.open2 }); }
+    };
+  }
+}
+</script>
+</body>
+</html>
