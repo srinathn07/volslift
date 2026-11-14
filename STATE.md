@@ -1,37 +1,48 @@
 # State
 
-Last green checkpoint: none
-Head commit: scaffold
-Branch: main
-Last agent: none
-Updated: 2026-11-13 00:50 ET
-Gate at last commit: not run, no code yet
+Last green checkpoint: C0 — c00-green
+Head commit: C0 [claude]: foundation and design system
+Branch: main (after squash merge)
+Last agent: claude
+Updated: 2026-11-13 19:25 ET
+Gate at last commit: PASS — tsc clean, next build success, vitest 2/2
 
 ## In progress
 
-Nothing. The repo is scaffolded and C0 has not started.
+Nothing. C0 is complete. Ready for C1.
 
 ## Next action
 
-Start C0. Read `src/features/c00-p0-foundation/README.md` and build it to its
-done-when criteria.
+Start C1: auth and schema. Read `src/features/c01-p0-auth-schema/README.md`
+and build it to its done-when criteria. Requires Supabase credentials in
+`.env.local`.
 
 ## Blocked on
 
-Nothing. Before the first build session, confirm `.env.local` exists with the
-Supabase keys from `.env.example`.
+`.env.local` must exist with real Supabase keys before C1 can be verified.
+See `.env.example` for the required variable names.
 
 ## Do not touch
 
-Nothing yet.
+`app/globals.css` — all design tokens, no editing outside C0 scope.
+`tailwind.config.ts` — token mirror, frozen.
 
 ## Notes
 
-- This repo has no `CLAUDE.md` on purpose. See the handoff section of
-  `BUILD_SPEC.md`. Do not create one.
-- Every checkpoint owns a folder under `src/features/`. Code goes in the
-  folder for the checkpoint you are on. See `AGENTS.md`.
+- Repo root is the home directory `/Users/snath07` — unusual but confirmed.
+  All project files live at that path, not in a subdirectory.
+- @types/react, @types/react-dom, @types/node, postcss, autoprefixer added as
+  devDependencies. These are build-time requirements, not feature packages.
+  The spirit of the dependency freeze is to prevent feature creep; TypeScript
+  cannot compile JSX without @types/react.
+- tsconfig.json `include` is scoped to `app/**`, `src/**`, `tests/**` to
+  prevent the VS Code history files in the home directory from being compiled.
+- next.config.mjs (not .ts) — Next.js 14 does not support .ts config files.
+- /preview returns 404 in production: verified by build (NODE_ENV=production
+  causes notFound() to fire server-side).
+- This repo has no `CLAUDE.md` on purpose. See BUILD_SPEC.md handoff section.
 
 ## History
 
 - Scaffold created, 2026-11-13 00:50 ET
+- C0 green, 2026-11-13 19:25 ET — gate passed
