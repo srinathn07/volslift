@@ -9,12 +9,15 @@ import {
   useRef,
   useState,
 } from "react";
+import type { User } from "@supabase/supabase-js";
 import { buildGymContext, substituteFor, type GymContext } from "./availability";
 import { exerciseById, gymById } from "./catalog";
 import { loadActiveWorkout, loadHistory, loadSets, saveWorkout, saveSets } from "./db";
 import { populateHistory } from "./history";
 import type { OccupancySnapshot } from "./occupancy";
 import { gymOccupancySnapshot } from "./occupancySim";
+import { supabase } from "./supabase";
+import { pullRemote, pushPending } from "./sync";
 import type { Routine, RoutineExercise, SessionSummary, SetEntry } from "./types";
 
 export interface ActiveSet {
@@ -93,6 +96,12 @@ interface StoreValue {
   previousFor: (exerciseId: string, setIndex: number) => string;
   tonnage: number;
   occupancy: Map<string, OccupancySnapshot>;
+
+  authUser: User | null;
+  syncStatus: "idle" | "syncing" | "error";
+  signIn: (email: string, password: string) => Promise<string | null>;
+  signUp: (email: string, password: string) => Promise<string | null>;
+  signOut: () => Promise<void>;
 }
 
 const StoreContext = createContext<StoreValue | null>(null);
@@ -111,6 +120,8 @@ export function VolFitProvider({ children }: { children: React.ReactNode }) {
   const [occupancy, setOccupancy] = useState<Map<string, OccupancySnapshot>>(
     () => gymOccupancySnapshot(FIXED_GYM_ID, gym?.equipment ?? []),
   );
+  const [authUser,    setAuthUser]    = useState<User | null>(null);
+  const [syncStatus,  setSyncStatus]  = useState<"idle" | "syncing" | "error">("idle");
   const restored = useRef(false);
 
   const refreshHistory = useCallback(async () => {
@@ -126,6 +137,27 @@ export function VolFitProvider({ children }: { children: React.ReactNode }) {
     const id = window.setInterval(refresh, 5 * 60 * 1000);
     return () => window.clearInterval(id);
   }, [gym]);
+
+  // Keep authUser in sync with the Supabase session, and pull remote history
+  // whenever the user signs in so a new device is populated immediately.
+  useEffect(() => {
+    void supabase.auth.getSession().then(({ data }) => {
+      setAuthUser(data.session?.user ?? null);
+    });
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        setAuthUser(session?.user ?? null);
+        if (event === "SIGNED_IN" && session?.user) {
+          setSyncStatus("syncing");
+          pullRemote(session.user)
+            .then(() => refreshHistory())
+            .then(() => setSyncStatus("idle"))
+            .catch(() => setSyncStatus("error"));
+        }
+      },
+    );
+    return () => subscription.unsubscribe();
+  }, [refreshHistory]);
 
   useEffect(() => {
     if (restored.current) return;
@@ -377,7 +409,17 @@ export function VolFitProvider({ children }: { children: React.ReactNode }) {
     });
     setRest({ open: false, duration: DEFAULT_REST, startedAt: null });
     void refreshHistory();
-  }, [refreshHistory]);
+    // Push to Supabase if signed in — non-blocking, non-fatal.
+    if (authUser) {
+      setSyncStatus("syncing");
+      // Slight delay to let saveWorkout/saveSets flush to IndexedDB first.
+      setTimeout(() => {
+        pushPending(authUser)
+          .then(() => setSyncStatus("idle"))
+          .catch(() => setSyncStatus("error"));
+      }, 400);
+    }
+  }, [refreshHistory, authUser]);
 
   const setRestDuration = useCallback((seconds: number) => {
     setRest((prev) => ({ ...prev, duration: seconds, startedAt: Date.now() }));
@@ -413,6 +455,20 @@ export function VolFitProvider({ children }: { children: React.ReactNode }) {
     );
   }, [session]);
 
+  const signIn = useCallback(async (email: string, password: string): Promise<string | null> => {
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    return error?.message ?? null;
+  }, []);
+
+  const signUp = useCallback(async (email: string, password: string): Promise<string | null> => {
+    const { error } = await supabase.auth.signUp({ email, password });
+    return error?.message ?? null;
+  }, []);
+
+  const signOut = useCallback(async () => {
+    await supabase.auth.signOut();
+  }, []);
+
   // Expose substituteFor bound to current gymCtx so pages don't import availability directly.
   const boundSubstituteFor = useCallback(
     (exercise: Parameters<typeof substituteFor>[0]) => substituteFor(exercise, gymCtx),
@@ -430,6 +486,7 @@ export function VolFitProvider({ children }: { children: React.ReactNode }) {
     rest, setRestDuration, closeRest,
     previousFor, tonnage,
     occupancy,
+    authUser, syncStatus, signIn, signUp, signOut,
     // @ts-expect-error extra field used by workout page
     substituteFor: boundSubstituteFor,
   };
