@@ -2,28 +2,32 @@ import type { User } from "@supabase/supabase-js";
 import { getDb, markSynced, pendingRows } from "./db";
 import { supabase } from "./supabase";
 
+// Actual Supabase table/column names (differ from local IndexedDB schema):
+//   workouts        → sessions
+//   sets.client_id  → sets.client_uuid
+//   sets.workout_id → sets.session_id
+//   sets.done_at    → sets.logged_at
+
 function toIso(ms: number): string {
   return new Date(ms).toISOString();
 }
 
 /**
- * Uploads any locally-completed workouts (endedAt set, syncedAt not set)
- * to Supabase.  Workouts are upserted before sets so the sets RLS policy
- * (which checks workout ownership) is satisfied.
+ * Uploads locally-completed workouts (endedAt set, syncedAt not set) to
+ * Supabase.  Sessions are upserted before sets so the sets RLS policy
+ * (which checks session ownership) is satisfied.
  */
 export async function pushPending(user: User): Promise<void> {
   const { workouts, sets } = await pendingRows();
   if (workouts.length === 0) return;
 
-  const { error: wErr } = await supabase.from("workouts").upsert(
+  const { error: wErr } = await supabase.from("sessions").upsert(
     workouts.map((w) => ({
       id: w.id,
       user_id: user.id,
       name: w.name,
       started_at: toIso(w.startedAt),
       ended_at: w.endedAt ? toIso(w.endedAt) : null,
-      gym_id: null,
-      routine_id: null,
     })),
     { onConflict: "id" },
   );
@@ -32,16 +36,17 @@ export async function pushPending(user: User): Promise<void> {
   if (sets.length > 0) {
     const { error: sErr } = await supabase.from("sets").upsert(
       sets.map((s) => ({
-        client_id: s.clientId,
-        workout_id: s.workoutId,
+        client_uuid: s.clientId,
+        session_id: s.workoutId,
         exercise_id: s.exerciseId,
         set_index: s.setIndex,
         weight: s.weight,
         reps: s.reps,
         rpe: s.rpe ?? null,
-        done_at: s.doneAt ? toIso(s.doneAt) : null,
+        is_warmup: false,
+        logged_at: s.doneAt ? toIso(s.doneAt) : null,
       })),
-      { onConflict: "client_id" },
+      { onConflict: "client_uuid" },
     );
     if (sErr) throw new Error(sErr.message);
   }
@@ -50,35 +55,35 @@ export async function pushPending(user: User): Promise<void> {
 }
 
 /**
- * Fetches all completed workouts for the signed-in user from Supabase and
- * merges them into the local IndexedDB.  Runs on sign-in so a second device
+ * Fetches all completed sessions for the signed-in user from Supabase and
+ * merges them into local IndexedDB.  Runs on sign-in so a new device
  * immediately has the full history.
  */
 export async function pullRemote(user: User): Promise<void> {
   const db = getDb();
   if (!db) return;
 
-  const { data: workouts, error: wErr } = await supabase
-    .from("workouts")
+  const { data: sessions, error: wErr } = await supabase
+    .from("sessions")
     .select("id, name, started_at, ended_at")
     .eq("user_id", user.id)
     .not("ended_at", "is", null);
   if (wErr) throw new Error(wErr.message);
-  if (!workouts || workouts.length === 0) return;
+  if (!sessions || sessions.length === 0) return;
 
   const { data: sets, error: sErr } = await supabase
     .from("sets")
-    .select("client_id, workout_id, exercise_id, set_index, weight, reps, rpe, done_at")
-    .in("workout_id", workouts.map((w) => w.id));
+    .select("client_uuid, session_id, exercise_id, set_index, weight, reps, rpe, logged_at")
+    .in("session_id", sessions.map((s) => s.id));
   if (sErr) throw new Error(sErr.message);
 
   await db.workouts.bulkPut(
-    workouts.map((w) => ({
-      id: w.id,
+    sessions.map((s) => ({
+      id: s.id,
       gymId: "ut_rec",
-      name: w.name,
-      startedAt: new Date(w.started_at as string).getTime(),
-      endedAt: new Date(w.ended_at as string).getTime(),
+      name: s.name,
+      startedAt: new Date(s.started_at as string).getTime(),
+      endedAt: new Date(s.ended_at as string).getTime(),
       syncedAt: Date.now(),
     })),
   );
@@ -86,14 +91,14 @@ export async function pullRemote(user: User): Promise<void> {
   if (sets && sets.length > 0) {
     await db.sets.bulkPut(
       sets.map((s) => ({
-        clientId: s.client_id as string,
-        workoutId: s.workout_id as string,
+        clientId: s.client_uuid as string,
+        workoutId: s.session_id as string,
         exerciseId: s.exercise_id as string,
         setIndex: s.set_index as number,
         weight: Number(s.weight),
         reps: Number(s.reps),
         rpe: s.rpe != null ? Number(s.rpe) : undefined,
-        doneAt: s.done_at ? new Date(s.done_at as string).getTime() : undefined,
+        doneAt: s.logged_at ? new Date(s.logged_at as string).getTime() : undefined,
       })),
     );
   }
