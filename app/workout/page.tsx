@@ -7,7 +7,7 @@ import { Screen } from "@/components/Shell";
 import { IconCheck, IconDots, IconPlus, IconSwap, IconX } from "@/components/Icons";
 import { substituteFor, substitutesForBusy, type SwapCandidate } from "@/lib/availability";
 import { equipmentName, exerciseById } from "@/lib/catalog";
-import { busyLevel, shouldOfferSwap, type OccupancySnapshot } from "@/lib/occupancy";
+import { busyLevel, shouldOfferSwap, waitLabel, type OccupancySnapshot } from "@/lib/occupancy";
 import { formatClock, useElapsed, useStore, type ActiveExercise } from "@/lib/store";
 import { font, muscleTint, t } from "@/lib/tokens";
 
@@ -170,9 +170,22 @@ export default function WorkoutPage() {
             </span>
           </div>
         ) : (
-          session.exercises.map((ex) => {
+          session.exercises.map((ex, index) => {
             const available = gymCtx.availableIds.has(ex.exerciseId);
             const exercise = exerciseById(ex.exerciseId);
+
+            // The exercise you are on is the first with a set still to do.
+            // "Up next" hangs off that one so it is read during rest, not
+            // repeated under every lift in the session.
+            const currentIndex = session.exercises.findIndex((e) =>
+              e.sets.some((s) => !s.done),
+            );
+            const nextEx =
+              index === currentIndex ? session.exercises[index + 1] : undefined;
+            const nextExercise = nextEx ? exerciseById(nextEx.exerciseId) : undefined;
+            const nextSnap = nextExercise
+              ? occupancy.get(nextExercise.equipment)
+              : undefined;
 
             if (!available) {
               const sub = exercise ? substituteFor(exercise, gymCtx) : null;
@@ -214,6 +227,7 @@ export default function WorkoutPage() {
                     }
                   />
                 )}
+                {nextEx && <UpNextCard exerciseId={nextEx.exerciseId} snap={nextSnap} />}
               </div>
             );
           })
@@ -772,6 +786,79 @@ function OccupancyMeter({ snap }: { snap: OccupancySnapshot }) {
       >
         {snap.inUse} of {snap.total} in use
       </span>
+    </div>
+  );
+}
+
+/**
+ * What the next lift in the session looks like before you walk over to it.
+ *
+ * The meter above each exercise tells you about the one you are on, which is
+ * too late to be useful: by then you are standing at the station. This reads
+ * one ahead, during the rest you are already taking, while there is still
+ * time to reorder or swap.
+ */
+function UpNextCard({
+  exerciseId,
+  snap,
+}: {
+  exerciseId: string;
+  snap: OccupancySnapshot | undefined;
+}) {
+  const exercise = exerciseById(exerciseId);
+  if (!exercise) return null;
+
+  const level = snap ? busyLevel(snap) : "free";
+  const tint = level === "busy" ? t.warning : level === "moderate" ? t.accent : t.success;
+  const label = snap ? waitLabel(snap) : "no equipment data";
+  const station = equipmentName(exercise.equipment);
+
+  return (
+    <div
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: 10,
+        padding: "9px 13px",
+        background: t.surface,
+        border: `1px solid ${t.border}`,
+        borderRadius: 11,
+      }}
+    >
+      <span
+        aria-hidden
+        style={{
+          width: 6,
+          height: 6,
+          borderRadius: 999,
+          background: tint,
+          flexShrink: 0,
+        }}
+      />
+      <div style={{ display: "flex", flexDirection: "column", minWidth: 0, flex: 1, gap: 1 }}>
+        <span style={{ fontSize: 11, letterSpacing: "0.06em", color: t.textFaint }}>
+          UP NEXT
+        </span>
+        <span
+          style={{
+            fontSize: 13,
+            fontWeight: 600,
+            whiteSpace: "nowrap",
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+          }}
+        >
+          {exercise.name}
+        </span>
+      </div>
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 1 }}>
+        <span style={{ fontFamily: font.mono, fontSize: 11.5, color: tint }}>{label}</span>
+        {snap ? (
+          <span style={{ fontFamily: font.mono, fontSize: 10.5, color: t.textFaint }}>
+            {station} · {snap.inUse} of {snap.total} in use
+          </span>
+        ) : null}
+      </div>
     </div>
   );
 }

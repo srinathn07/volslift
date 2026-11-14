@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { busyLevel, estimatedWaitMinutes, shouldOfferSwap } from "./occupancy";
+import { busyLevel, estimatedWaitMinutes, shouldOfferSwap, waitLabel } from "./occupancy";
 import type { OccupancySnapshot } from "./occupancy";
 
 function snap(total: number, inUse: number): OccupancySnapshot {
@@ -74,5 +74,25 @@ describe("shouldOfferSwap", () => {
     // 10-minute rest means even a queue barely matters.
     // snap(1,1) → wait ≈ 4 min; 600 s rest = 10 min > 4 min.
     expect(shouldOfferSwap(snap(1, 1), 600)).toBe(false);
+  });
+});
+
+describe("waitLabel", () => {
+  it("says a station is open when nothing is queueing", () => {
+    expect(waitLabel(snap(4, 0))).toBe("open now");
+    expect(waitLabel(snap(4, 1))).toBe("open now");
+  });
+
+  // At moderate use the wait turns on whether the person on the station is
+  // mid-set or packing up, which nothing here knows, so a figure would be
+  // false precision.
+  it("gives no figure at moderate use", () => {
+    expect(waitLabel(snap(4, 2))).toBe("may be a short wait");
+    expect(waitLabel(snap(4, 3))).toBe("may be a short wait");
+  });
+
+  it("gives a figure only when there is a real queue", () => {
+    expect(waitLabel(snap(4, 4))).toBe(`about ${estimatedWaitMinutes(snap(4, 4))} min wait`);
+    expect(waitLabel(snap(1, 1))).toMatch(/^about \d+ min wait$/);
   });
 });

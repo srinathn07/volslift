@@ -42,6 +42,21 @@ export function estimatedWaitMinutes(s: OccupancySnapshot): number {
 }
 
 /**
+ * How the wait reads to someone deciding whether to walk over.
+ *
+ * A number is only given when there is a real queue. Below that a figure
+ * would be false precision: at moderate use the wait depends on whether the
+ * person on the station is mid-set or packing up, which nothing here knows.
+ */
+export function waitLabel(s: OccupancySnapshot): string {
+  const level = busyLevel(s);
+  if (level === "free") return "open now";
+  if (level === "moderate") return "may be a short wait";
+  const minutes = estimatedWaitMinutes(s);
+  return `about ${minutes} min wait`;
+}
+
+/**
  * Returns true when offering a swap is worth showing.
  *
  * Training reason: a wait shorter than the planned rest interval costs
