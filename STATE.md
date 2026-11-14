@@ -29,6 +29,10 @@ See `.env.example` for the required variable names.
 
 ## Notes
 
+- Correction to commit 63a6cda's message: the c00-green tag DID exist and was
+  pushed correctly. That commit's claim otherwise was wrong. It points at
+  1540a4a. Only the stale head-commit line in this file needed fixing.
+
 - Repo root is the home directory `/Users/snath07` — unusual but confirmed.
   All project files live at that path, not in a subdirectory.
 - @types/react, @types/react-dom, @types/node, postcss, autoprefixer added as
