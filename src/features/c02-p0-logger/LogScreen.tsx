@@ -1,41 +1,61 @@
 'use client';
 
 import { useState, useEffect, useMemo, type CSSProperties } from 'react';
-import { useSession }                  from './useSession';
-import { useSetLogger }                from './useSetLogger';
-import { usePrevious, getPrevForIndex } from './usePrevious';
-import { useRestTimer }                from './useRestTimer';
-import { useExercises }                from './useExercises';
-import { useEquipmentUnits }           from './useEquipmentUnits';
-import ExercisePicker  from './ExercisePicker';
-import SetEntryPending from './SetEntryPending';
-import PlateCalc       from './PlateCalc';
-import RestTimerBar    from './RestTimerBar';
+import { useSession } from './useSession';
+import { useSetLogger } from './useSetLogger';
+import { usePrevious } from './usePrevious';
+import { useRestTimer } from './useRestTimer';
+import { useExercises } from './useExercises';
+import { useEquipmentUnits } from './useEquipmentUnits';
+import ExercisePicker from './ExercisePicker';
+import SetTable from './SetTable';
+import StepperBar from './StepperBar';
+import PlateCalc from './PlateCalc';
+import RestTimerBar from './RestTimerBar';
 import type { LocalSet, ExerciseRow } from './types';
+
+/*
+ * Layout note: this screen renders inside AppShell's scroll container, which is
+ * already 100dvh minus the tab bar. Setting a 100dvh min-height here would push
+ * the primary action below the fold on every load, so the root fills its parent
+ * instead and the action bar is sticky.
+ */
+
+function defaultSessionName(d = new Date()): string {
+  const h = d.getHours();
+  if (h < 12) return 'Morning workout';
+  if (h < 17) return 'Afternoon workout';
+  return 'Evening workout';
+}
 
 export default function LogScreen() {
   const { session, loading: sessionLoading, startSession, endSession } = useSession();
   const { sets, logSet, syncStatus } = useSetLogger(session?.id ?? null);
 
-  const [selectedExId,   setSelectedExId]   = useState<string | null>(null);
-  const [pickerOpen,     setPickerOpen]      = useState(false);
-  const [sessionName,    setSessionName]     = useState('Workout');
-  const [pendingWeight,  setPendingWeight]   = useState(45);
-  const [pendingReps,    setPendingReps]     = useState(5);
-  const [logging,        setLogging]         = useState(false);
+  const [selectedExId, setSelectedExId] = useState<string | null>(null);
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [pendingWeight, setPendingWeight] = useState(45);
+  const [pendingReps, setPendingReps] = useState(5);
+  const [logging, setLogging] = useState(false);
+  const [starting, setStarting] = useState(false);
 
-  const { prevSets }                                     = usePrevious(selectedExId, session?.id ?? null);
-  const { remaining, active: timerActive, start: startTimer, stop: stopTimer } = useRestTimer();
-  const { exercises, recentIds }                         = useExercises();
-  const { units, selectedUnitId, setSelectedUnitId }     = useEquipmentUnits(selectedExId);
+  const { prevSets } = usePrevious(selectedExId, session?.id ?? null);
+  const {
+    remaining,
+    active: timerActive,
+    start: startTimer,
+    stop: stopTimer,
+  } = useRestTimer();
+  const { exercises, recentIds } = useExercises();
+  const { units, selectedUnitId, setSelectedUnitId } = useEquipmentUnits(selectedExId);
 
   const selectedEx: ExerciseRow | null = useMemo(
-    () => exercises.find(e => e.id === selectedExId) ?? null,
+    () => exercises.find((e) => e.id === selectedExId) ?? null,
     [exercises, selectedExId],
   );
 
   const currentExSets: LocalSet[] = useMemo(
-    () => sets.filter(s => s.exercise_id === selectedExId),
+    () => sets.filter((s) => s.exercise_id === selectedExId),
     [sets, selectedExId],
   );
 
@@ -45,20 +65,21 @@ export default function LogScreen() {
       const sorted = [...sets].sort((a, b) => b.logged_at.localeCompare(a.logged_at));
       setSelectedExId(sorted[0].exercise_id);
     }
-  }, [sets.length, selectedExId]);
+  }, [sets, selectedExId]);
 
   // On new session with no sets: open the exercise picker once.
   useEffect(() => {
     if (session && !sessionLoading && sets.length === 0 && selectedExId === null) {
       setPickerOpen(true);
     }
-  }, [session?.id, sessionLoading, sets.length, selectedExId]);
+  }, [session, sessionLoading, sets.length, selectedExId]);
 
-  // Prefill pending set from previous session whenever exercise / previous data / sets change.
+  // Prefill the pending set from the previous session.
   useEffect(() => {
     if (!selectedExId) return;
     const nextIdx = currentExSets.length + 1;
-    const prev    = getPrevForIndex(prevSets, nextIdx);
+    const prev =
+      prevSets.find((p) => p.set_index === nextIdx) ?? prevSets[prevSets.length - 1] ?? null;
     if (prev) {
       setPendingWeight(prev.weight);
       setPendingReps(prev.reps);
@@ -66,14 +87,15 @@ export default function LogScreen() {
       setPendingWeight(selectedEx?.equipment_class === 'barbell' ? 45 : 0);
       setPendingReps(5);
     }
-  // eslint intentionally not exhaustive — selectedEx changes with exercises load
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // selectedEx resolves asynchronously with the exercises load; including it
+    // would re-run this and clobber a value the user just typed.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedExId, prevSets, currentExSets.length]);
 
   function handleSelectExercise(exId: string) {
     setSelectedExId(exId);
     setPickerOpen(false);
-    const ex = exercises.find(e => e.id === exId);
+    const ex = exercises.find((e) => e.id === exId);
     setPendingWeight(ex?.equipment_class === 'barbell' ? 45 : 0);
     setPendingReps(5);
   }
@@ -96,35 +118,31 @@ export default function LogScreen() {
   }
 
   async function handleStart() {
-    const s = await startSession(sessionName || 'Workout');
+    if (starting) return;
+    setStarting(true);
+    const s = await startSession(defaultSessionName());
+    setStarting(false);
     if (s) setPickerOpen(true);
   }
 
-  /* ── Loading ── */
+  /* ── Resolving ── */
   if (sessionLoading) {
-    return <div style={{ minHeight: '100dvh', background: 'var(--canvas)' }} />;
+    return <div style={{ minHeight: '100%', background: 'var(--canvas)' }} />;
   }
 
-  /* ── No session ── */
+  /* ── No active session: one tap to start ── */
   if (!session) {
     return (
       <div style={root}>
-        <div style={{ padding: '56px 16px 32px' }}>
-          <h1 style={headingStyle}>Start a workout</h1>
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '0 16px' }}>
+          <h1 style={headingStyle}>Ready to lift</h1>
+          <p style={{ fontSize: 'var(--text-15)', color: 'var(--ink-muted)', marginTop: 6 }}>
+            Your last numbers load as you go.
+          </p>
         </div>
-        <div style={{ flex: 1, padding: '0 16px' }}>
-          <label style={labelStyle} htmlFor="sname">Session name</label>
-          <input
-            id="sname"
-            type="text"
-            value={sessionName}
-            onChange={e => setSessionName(e.target.value)}
-            style={inputStyle}
-          />
-        </div>
-        <div style={{ padding: '24px 16px 16px' }}>
-          <button onClick={handleStart} style={primaryBtn}>
-            Start workout
+        <div style={actionBar}>
+          <button onClick={handleStart} disabled={starting} style={primaryBtn}>
+            {starting ? 'Starting…' : 'Start workout'}
           </button>
         </div>
       </div>
@@ -132,16 +150,17 @@ export default function LogScreen() {
   }
 
   /* ── Active session ── */
-  const nextSetIdx  = currentExSets.length + 1;
-  const pendingPrev = getPrevForIndex(prevSets, nextSetIdx);
+  const nextSetIdx = currentExSets.length + 1;
 
-  // Group all session sets by exercise for the summary.
   const byExercise = new Map<string, LocalSet[]>();
   for (const s of sets) {
     const arr = byExercise.get(s.exercise_id) ?? [];
     arr.push(s);
     byExercise.set(s.exercise_id, arr);
   }
+  const otherExercises = Array.from(byExercise.entries()).filter(
+    ([exId]) => exId !== selectedExId,
+  );
 
   return (
     <>
@@ -158,7 +177,7 @@ export default function LogScreen() {
       <div style={root}>
         {/* Header */}
         <div style={sessionHeader}>
-          <span style={{ fontSize: 'var(--text-17)', fontWeight: 600, color: 'var(--ink)' }}>
+          <span style={{ fontSize: 'var(--text-15)', color: 'var(--ink-muted)' }}>
             {session.name}
           </span>
           <button onClick={endSession} style={ghostBtn}>
@@ -166,103 +185,99 @@ export default function LogScreen() {
           </button>
         </div>
 
-        {/* Rest timer */}
         <RestTimerBar remaining={remaining} active={timerActive} onSkip={stopTimer} />
 
         {/* Exercise selector */}
-        <button
-          onClick={() => setPickerOpen(true)}
-          style={{
-            display:      'flex',
-            alignItems:   'center',
-            gap:          8,
-            width:        '100%',
-            padding:      '14px 16px',
-            background:   'transparent',
-            border:       'none',
-            borderBottom: '1px solid var(--hairline)',
-            cursor:       'pointer',
-            fontFamily:   'inherit',
-            textAlign:    'left',
-            minHeight:    56,
-          }}
-        >
-          <span
-            style={{ flex: 1, fontSize: 'var(--text-22)', fontWeight: 600, color: 'var(--ink)' }}
-          >
-            {selectedEx ? selectedEx.name : 'Choose exercise'}
-          </span>
-          <span style={{ fontSize: 'var(--text-15)', color: 'var(--ink-muted)' }}>▾</span>
+        <button onClick={() => setPickerOpen(true)} style={exerciseBtn}>
+          <span style={exerciseName}>{selectedEx ? selectedEx.name : 'Choose exercise'}</span>
+          <Chevron />
         </button>
 
-        {selectedExId && (
-          <div style={{ padding: '12px 16px 0' }}>
-            {/* Logged sets for this exercise */}
-            {currentExSets.length > 0 && (
-              <LoggedSetList sets={currentExSets} />
-            )}
+        {/* Set table */}
+        <div style={{ flex: 1, padding: '14px 16px 0' }}>
+          {selectedExId && (
+            <>
+              <SetTable
+                loggedSets={currentExSets}
+                prevSets={prevSets}
+                pendingIndex={nextSetIdx}
+                pendingWeight={pendingWeight}
+                pendingReps={pendingReps}
+                onChange={(w, r) => {
+                  setPendingWeight(w);
+                  setPendingReps(r);
+                }}
+              />
 
-            {/* Pending set entry */}
-            <SetEntryPending
-              setIndex={nextSetIdx}
-              weight={pendingWeight}
-              reps={pendingReps}
-              prev={pendingPrev}
-              onChange={(w, r) => { setPendingWeight(w); setPendingReps(r); }}
-            />
+              <StepperBar
+                weight={pendingWeight}
+                reps={pendingReps}
+                onChange={(w, r) => {
+                  setPendingWeight(w);
+                  setPendingReps(r);
+                }}
+              />
 
-            {/* Equipment unit selector */}
-            {units.length > 0 && (
-              <div style={{ marginTop: 12 }}>
-                <span style={{ ...labelStyle, display: 'block', marginBottom: 6 }}>
-                  Equipment
-                </span>
-                <div
-                  style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 4 }}
-                >
-                  {units.map(u => (
-                    <button
-                      key={u.id}
-                      onClick={() => setSelectedUnitId(u.id)}
-                      style={{
-                        padding:      '8px 14px',
-                        background:   selectedUnitId === u.id ? 'var(--accent)' : 'var(--surface)',
-                        color:        selectedUnitId === u.id ? 'var(--on-accent)' : 'var(--ink)',
-                        border:       '1px solid var(--hairline)',
-                        borderRadius: 8,
-                        fontSize:     'var(--text-13)',
-                        cursor:       'pointer',
-                        fontFamily:   'inherit',
-                        whiteSpace:   'nowrap',
-                        minHeight:    44,
-                      }}
-                    >
-                      {u.name}
-                    </button>
-                  ))}
+              {selectedEx?.equipment_class === 'barbell' && <PlateCalc weight={pendingWeight} />}
+
+              {units.length > 0 && (
+                <div style={{ marginTop: 16 }}>
+                  <p style={capStyle}>Equipment</p>
+                  <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 4 }}>
+                    {units.map((u) => {
+                      const on = selectedUnitId === u.id;
+                      return (
+                        <button
+                          key={u.id}
+                          onClick={() => setSelectedUnitId(u.id)}
+                          aria-pressed={on}
+                          style={{
+                            ...chip,
+                            background: on ? 'var(--raised)' : 'transparent',
+                            color: on ? 'var(--ink)' : 'var(--ink-muted)',
+                            borderColor: on ? 'var(--ink-muted)' : 'var(--hairline)',
+                          }}
+                        >
+                          {u.name}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
 
-            {/* Plate calculator */}
-            {selectedEx?.equipment_class === 'barbell' && (
-              <PlateCalc weight={pendingWeight} />
-            )}
-          </div>
-        )}
+              {/* Earlier exercises this session */}
+              {otherExercises.length > 0 && (
+                <div style={{ marginTop: 24, borderTop: '1px solid var(--hairline)', paddingTop: 16 }}>
+                  <p style={capStyle}>Earlier today</p>
+                  {otherExercises.map(([exId, exSets]) => {
+                    const ex = exercises.find((e) => e.id === exId);
+                    return (
+                      <button
+                        key={exId}
+                        onClick={() => setSelectedExId(exId)}
+                        style={earlierRow}
+                      >
+                        <span style={{ flex: 1, textAlign: 'left', color: 'var(--ink)' }}>
+                          {ex?.name ?? 'Exercise'}
+                        </span>
+                        <span style={{ color: 'var(--ink-muted)', fontSize: 'var(--text-13)' }}>
+                          {exSets.length} {exSets.length === 1 ? 'set' : 'sets'}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </>
+          )}
+        </div>
 
-        {/* CTA */}
-        <div
-          style={{
-            padding:       '20px 16px 16px',
-            display:       'flex',
-            flexDirection: 'column',
-            gap:           10,
-          }}
-        >
+        {/* Sticky action bar */}
+        <div style={actionBar}>
           {syncStatus === 'error' && (
-            <p style={{ fontSize: 'var(--text-13)', color: 'var(--busy)' }}>
-              Some sets are queued offline and will sync when connected.
+            <p style={{ fontSize: 'var(--text-13)', color: 'var(--busy)', marginBottom: 8 }}>
+              Saved on this device. Will sync when you are back online.
             </p>
           )}
           <button
@@ -276,188 +291,154 @@ export default function LogScreen() {
             <button
               onClick={handleRepeatLast}
               disabled={logging}
-              style={{ ...secondaryBtn, opacity: logging ? 0.5 : 1 }}
+              style={{ ...secondaryBtn, opacity: logging ? 0.5 : 1, marginTop: 8 }}
             >
               Repeat last set
             </button>
           )}
         </div>
-
-        {/* Session summary */}
-        {sets.length > 0 && (
-          <div
-            style={{
-              borderTop: '1px solid var(--hairline)',
-              padding:   '16px 16px 32px',
-            }}
-          >
-            <SectionCap label="This session" />
-            {Array.from(byExercise.entries()).map(([exId, exSets]) => {
-              const ex = exercises.find(e => e.id === exId);
-              return (
-                <div key={exId} style={{ marginBottom: 16 }}>
-                  <p
-                    style={{
-                      fontSize:   'var(--text-15)',
-                      fontWeight: 600,
-                      color:      'var(--ink)',
-                      marginBottom: 6,
-                    }}
-                  >
-                    {ex?.name ?? exId}
-                  </p>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                    {exSets.map(s => (
-                      <span
-                        key={s.client_uuid}
-                        style={{
-                          fontSize:           'var(--text-13)',
-                          color:              s.synced ? 'var(--ink-muted)' : 'var(--unknown)',
-                          fontVariantNumeric: 'tabular-nums',
-                        }}
-                      >
-                        {s.weight}×{s.reps}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
       </div>
     </>
   );
 }
 
-/* ── Sub-components ──────────────────────────────────────────────────────────── */
-
-function LoggedSetList({ sets }: { sets: LocalSet[] }) {
+function Chevron() {
   return (
-    <div style={{ marginBottom: 8 }}>
-      {sets.map(s => (
-        <div
-          key={s.client_uuid}
-          style={{
-            display:            'flex',
-            alignItems:         'center',
-            gap:                12,
-            padding:            '8px 0',
-            borderBottom:       '1px solid var(--hairline)',
-            fontVariantNumeric: 'tabular-nums',
-          }}
-        >
-          <span
-            style={{ fontSize: 'var(--text-13)', color: 'var(--ink-muted)', minWidth: 20 }}
-          >
-            {s.set_index}
-          </span>
-          <span style={{ flex: 1, fontSize: 'var(--text-15)', color: 'var(--ink)' }}>
-            {s.weight} lb × {s.reps}
-          </span>
-          <span style={{ fontSize: 11, color: s.synced ? 'var(--free)' : 'var(--unknown)' }}>
-            {s.synced ? '✓' : '…'}
-          </span>
-        </div>
-      ))}
-    </div>
+    <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden focusable="false">
+      <path
+        d="M2.5 4.5L6 8l3.5-3.5"
+        fill="none"
+        stroke="var(--ink-muted)"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
   );
 }
 
-function SectionCap({ label }: { label: string }) {
-  return (
-    <p
-      style={{
-        fontSize:      11,
-        fontWeight:    600,
-        color:         'var(--ink-muted)',
-        letterSpacing: '0.06em',
-        textTransform: 'uppercase' as const,
-        marginBottom:  12,
-      }}
-    >
-      {label}
-    </p>
-  );
-}
-
-/* ── Styles ──────────────────────────────────────────────────────────────────── */
+/* ── Styles ──────────────────────────────────────────────────────────────── */
 
 const root: CSSProperties = {
-  minHeight:     '100dvh',
-  background:    'var(--canvas)',
-  display:       'flex',
+  minHeight: '100%',
+  background: 'var(--canvas)',
+  display: 'flex',
   flexDirection: 'column',
 };
 
 const sessionHeader: CSSProperties = {
-  display:        'flex',
-  alignItems:     'center',
+  display: 'flex',
+  alignItems: 'center',
   justifyContent: 'space-between',
-  padding:        '14px 16px 10px',
-  borderBottom:   '1px solid var(--hairline)',
+  padding: '12px 16px',
 };
 
 const headingStyle: CSSProperties = {
-  fontSize:   'var(--text-28)',
+  fontSize: 'var(--text-28)',
   fontWeight: 600,
-  color:      'var(--ink)',
+  color: 'var(--ink)',
   lineHeight: 1.2,
 };
 
-const labelStyle: CSSProperties = {
-  fontSize: 'var(--text-13)',
-  color:    'var(--ink-muted)',
+const capStyle: CSSProperties = {
+  fontSize: 'var(--text-12)',
+  fontWeight: 600,
+  color: 'var(--ink-muted)',
+  letterSpacing: '0.06em',
+  textTransform: 'uppercase',
+  marginBottom: 8,
 };
 
-const inputStyle: CSSProperties = {
-  display:      'block',
-  width:        '100%',
-  height:       52,
-  background:   'var(--surface)',
-  border:       '1px solid var(--hairline)',
-  borderRadius: 8,
-  color:        'var(--ink)',
-  fontSize:     'var(--text-15)',
-  padding:      '0 16px',
-  outline:      'none',
-  fontFamily:   'inherit',
-  marginTop:    6,
+const exerciseBtn: CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: 8,
+  width: '100%',
+  padding: '0 16px 14px',
+  background: 'transparent',
+  border: 'none',
+  borderBottom: '1px solid var(--hairline)',
+  cursor: 'pointer',
+  fontFamily: 'inherit',
+  textAlign: 'left',
+  minHeight: 56,
+};
+
+const exerciseName: CSSProperties = {
+  flex: 1,
+  fontSize: 'var(--text-28)',
+  fontWeight: 600,
+  color: 'var(--ink)',
+  lineHeight: 1.2,
+};
+
+/* Sticky so the primary action is reachable without scrolling. */
+const actionBar: CSSProperties = {
+  position: 'sticky',
+  bottom: 0,
+  background: 'var(--canvas)',
+  borderTop: '1px solid var(--hairline)',
+  padding: '12px 16px 16px',
 };
 
 const primaryBtn: CSSProperties = {
-  width:        '100%',
-  height:       56,
-  background:   'var(--accent)',
-  color:        'var(--on-accent)',
-  border:       'none',
+  width: '100%',
+  height: 56,
+  background: 'var(--accent)',
+  color: 'var(--on-accent)',
+  border: 'none',
   borderRadius: 8,
-  fontSize:     'var(--text-17)',
-  fontWeight:   600,
-  cursor:       'pointer',
-  fontFamily:   'inherit',
+  fontSize: 'var(--text-17)',
+  fontWeight: 600,
+  cursor: 'pointer',
+  fontFamily: 'inherit',
 };
 
 const secondaryBtn: CSSProperties = {
-  width:        '100%',
-  height:       56,
-  background:   'var(--surface)',
-  color:        'var(--ink-muted)',
-  border:       '1px solid var(--hairline)',
+  width: '100%',
+  height: 56,
+  background: 'transparent',
+  color: 'var(--ink-muted)',
+  border: '1px solid var(--hairline)',
   borderRadius: 8,
-  fontSize:     'var(--text-17)',
-  fontWeight:   600,
-  cursor:       'pointer',
-  fontFamily:   'inherit',
+  fontSize: 'var(--text-17)',
+  fontWeight: 600,
+  cursor: 'pointer',
+  fontFamily: 'inherit',
 };
 
 const ghostBtn: CSSProperties = {
-  fontSize:   'var(--text-15)',
-  color:      'var(--ink-muted)',
+  fontSize: 'var(--text-15)',
+  color: 'var(--ink-muted)',
   background: 'transparent',
-  border:     'none',
-  cursor:     'pointer',
-  padding:    '8px 0 8px 16px',
+  border: 'none',
+  cursor: 'pointer',
+  padding: '8px 0 8px 16px',
   fontFamily: 'inherit',
-  minHeight:  44,
+  minHeight: 44,
+};
+
+const chip: CSSProperties = {
+  padding: '0 14px',
+  minHeight: 44,
+  border: '1px solid var(--hairline)',
+  borderRadius: 8,
+  fontSize: 'var(--text-13)',
+  cursor: 'pointer',
+  fontFamily: 'inherit',
+  whiteSpace: 'nowrap',
+};
+
+const earlierRow: CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  width: '100%',
+  minHeight: 48,
+  background: 'transparent',
+  border: 'none',
+  borderBottom: '1px solid var(--hairline)',
+  cursor: 'pointer',
+  fontFamily: 'inherit',
+  fontSize: 'var(--text-15)',
+  padding: 0,
 };
