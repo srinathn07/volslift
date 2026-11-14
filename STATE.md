@@ -1,11 +1,11 @@
 # State
 
 Last green checkpoint: C0 — c00-green
-Head commit: C0 [claude]: foundation and design system
+Head commit: aa067ef C0 [claude]: bypass AppShell on /preview so tab bar doesn't double-render
 Branch: main (after squash merge)
 Last agent: claude
 Updated: 2026-11-13 19:25 ET
-Gate at last commit: PASS — tsc clean, next build success, vitest 2/2
+Gate at last commit: PASS at 1540a4a. Three C0 refinement commits landed after it (phone frame, tab icons, preview shell bypass) and were verified by the user running the app, not by a re-run of the gate.
 
 ## In progress
 
