@@ -107,3 +107,56 @@ LAN IP to Supabase Authentication → URL Configuration → Redirect URLs
    ```
    Expected: exercises ≥ 70 rows, equipment_units ≥ 25 rows, both matching
    the counts in `supabase/seed/seed.sql`.
+
+---
+
+## C2 workout logger
+
+Run `npm run dev -- -H 0.0.0.0`. Sign in first (C1 smoke). Open `/log` at
+360px wide in DevTools (or on a phone). These steps require a live Supabase
+connection.
+
+1. **Start a session, log three sets with steppers only.**
+   Open `/log`. Tap "Start workout". Choose any barbell exercise (e.g. Bench
+   Press) from the picker. Use the − and + stepper buttons to adjust weight
+   and reps. Tap "Log set" three times.
+   Expected: each set appears in the logged-sets list above the entry row.
+   The rest timer appears after each log. No keyboard appears unless you tap
+   the number itself.
+
+2. **Previous column prefills on second session.**
+   End the session. Start a new one. Choose the same exercise.
+   Expected: the weight and reps inputs are prefilled with the values from the
+   first set of the previous session. "Prev" shows the previous weight × reps.
+
+3. **Repeat last set in one tap.**
+   After logging at least one set in a session, tap "Repeat last set".
+   Expected: a new set is added instantly with the same weight and reps.
+   That is two taps from app-open to second set logged (open app + repeat).
+
+4. **Double-tap log does not create duplicates.**
+   Tap "Log set" twice as fast as possible. Check in Supabase Dashboard →
+   Table Editor → sets.
+   Expected: exactly one new row is added, not two.
+
+5. **Offline queue syncs on reconnect.**
+   In DevTools → Network, set throttling to "Offline". Log three sets — they
+   appear in the UI immediately. Re-enable the network.
+   Expected: all three sets appear in Supabase sets table once, not more.
+
+6. **Rest timer survives backgrounding.**
+   Log a set (rest timer starts). Switch to another browser tab for 60 seconds.
+   Return to `/log`.
+   Expected: the timer shows approximately the correct remaining time, not
+   reset to the full duration.
+
+7. **Plate calculator appears for barbell exercises.**
+   Select a barbell exercise. Set weight to 135 lb.
+   Expected: "Plates per side: 1×45" appears below the steppers.
+   Set weight to 185 lb.
+   Expected: "Plates per side: 1×45  1×25".
+
+8. **Session summary shows all exercises.**
+   Log sets on two different exercises in the same session. Scroll down past
+   the log-set button.
+   Expected: both exercises appear with their sets listed as weight×reps chips.
